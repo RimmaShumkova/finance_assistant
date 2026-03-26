@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/expense_category.dart';
+import '../theme/app_theme.dart';
 
 class ExpenseCard extends StatelessWidget {
   final ExpenseCategory category;
@@ -8,19 +9,20 @@ class ExpenseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isOverBudget = category.spentPercentage > 1.0;
+    final isNearLimit = category.spentPercentage > 0.9 && category.spentPercentage <= 1.0;
+    
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.blackCard,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(
+          color: isOverBudget 
+              ? AppTheme.red.withOpacity(0.3) 
+              : AppTheme.grey.withOpacity(0.2),
+          width: 1,
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -32,7 +34,7 @@ class ExpenseCard extends StatelessWidget {
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
-                    color: Color(category.color).withOpacity(0.2),
+                    color: Color(category.color).withOpacity(0.15),
                     borderRadius: BorderRadius.circular(25),
                   ),
                   child: Center(
@@ -52,6 +54,7 @@ class ExpenseCard extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: AppTheme.white,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -60,7 +63,7 @@ class ExpenseCard extends StatelessWidget {
                           Text(
                             'Потрачено: ${_formatMoney(category.spent)}',
                             style: TextStyle(
-                              color: Colors.grey[600],
+                              color: AppTheme.greyLight,
                               fontSize: 12,
                             ),
                           ),
@@ -68,9 +71,9 @@ class ExpenseCard extends StatelessWidget {
                           Text(
                             'Осталось: ${_formatMoney(category.remaining)}',
                             style: TextStyle(
-                              color: category.remaining < 0
-                                  ? Colors.red
-                                  : Colors.green,
+                              color: isOverBudget
+                                  ? AppTheme.red
+                                  : AppTheme.green,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
@@ -85,7 +88,9 @@ class ExpenseCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey[700],
+                    color: isOverBudget 
+                        ? AppTheme.red 
+                        : AppTheme.yellow,
                   ),
                 ),
               ],
@@ -95,9 +100,11 @@ class ExpenseCard extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: LinearProgressIndicator(
-                value: category.spentPercentage,
-                backgroundColor: Colors.grey[200],
-                color: Color(category.color),
+                value: category.spentPercentage.clamp(0.0, 1.0),
+                backgroundColor: AppTheme.grey.withOpacity(0.3),
+                color: isOverBudget 
+                    ? AppTheme.red 
+                    : Color(category.color),
                 minHeight: 8,
               ),
             ),
@@ -109,24 +116,54 @@ class ExpenseCard extends StatelessWidget {
                   'Бюджет: ${_formatMoney(category.budget)}',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[600],
+                    color: AppTheme.grey,
                   ),
                 ),
-                if (category.spentPercentage > 0.9)
+                if (isOverBudget)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: AppTheme.red.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          size: 12,
+                          color: AppTheme.red,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Бюджет превышен',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: AppTheme.red,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (isNearLimit)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.yellow.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      'Лимит接近',
+                      'Осталось мало',
                       style: TextStyle(
                         fontSize: 10,
-                        color: Colors.red[700],
+                        color: AppTheme.yellow,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

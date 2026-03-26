@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/expense_category.dart';
+import '../theme/app_theme.dart';
 
 class ExpenseChart extends StatelessWidget {
   final List<ExpenseCategory> categories;
@@ -16,16 +17,12 @@ class ExpenseChart extends StatelessWidget {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.blackCard,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(
+          color: AppTheme.grey.withOpacity(0.2),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -35,14 +32,20 @@ class ExpenseChart extends StatelessWidget {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
+              color: AppTheme.white,
             ),
           ),
           const SizedBox(height: 16),
           if (totalSpent == 0)
-            const Center(
+            Center(
               child: Padding(
-                padding: EdgeInsets.all(32),
-                child: Text('Нет данных о расходах'),
+                padding: const EdgeInsets.all(32),
+                child: Text(
+                  'Нет данных о расходах',
+                  style: TextStyle(
+                    color: AppTheme.grey,
+                  ),
+                ),
               ),
             )
           else
@@ -76,24 +79,40 @@ class ExpenseChart extends StatelessWidget {
             size: const Size(150, 150),
             painter: PieChartPainter(categories: categories, total: total),
           ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '${total.toStringAsFixed(0)}',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+          Container(
+            width: 70,
+            height: 70,
+            decoration: BoxDecoration(
+              color: AppTheme.blackCard,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppTheme.grey.withOpacity(0.3),
+                width: 1,
               ),
-              Text(
-                '₽',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${total.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.white,
+                    ),
+                  ),
+                  Text(
+                    '₽',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.yellow,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -115,20 +134,39 @@ class ExpenseChart extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Color(category.color),
                   borderRadius: BorderRadius.circular(2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(category.color).withOpacity(0.5),
+                      blurRadius: 2,
+                      spreadRadius: 0,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   category.name,
-                  style: const TextStyle(fontSize: 12),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.white,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
-              Text(
-                '${percentage.toStringAsFixed(1)}%',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Color(category.color).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${percentage.toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Color(category.color),
+                  ),
                 ),
               ),
             ],
@@ -148,12 +186,17 @@ class PieChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     double startAngle = -90 * (3.14159 / 180);
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
     
     for (var category in categories) {
       final sweepAngle = (category.spent / total) * 2 * 3.14159;
+      
+      // Основной сегмент
       final paint = Paint()
         ..color = Color(category.color)
-        ..style = PaintingStyle.fill;
+        ..style = PaintingStyle.fill
+        ..strokeWidth = 0;
       
       canvas.drawArc(
         Rect.fromLTWH(0, 0, size.width, size.height),
@@ -162,8 +205,31 @@ class PieChartPainter extends CustomPainter {
         true,
         paint,
       );
+      
+      // Добавляем тонкую обводку для контраста
+      final strokePaint = Paint()
+        ..color = AppTheme.blackCard
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5;
+      
+      canvas.drawArc(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        startAngle,
+        sweepAngle,
+        true,
+        strokePaint,
+      );
+      
       startAngle += sweepAngle;
     }
+    
+    // Рисуем внешнюю обводку
+    final outlinePaint = Paint()
+      ..color = AppTheme.yellow.withOpacity(0.3)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    
+    canvas.drawCircle(center, radius, outlinePaint);
   }
 
   @override
