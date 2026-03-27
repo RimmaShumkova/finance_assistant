@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'budget_styles.dart';
 
 class Category {
   String name;
@@ -18,8 +19,7 @@ class BudgetScreen extends StatefulWidget {
 }
 
 class _BudgetScreenState extends State<BudgetScreen> {
-  double? income; // теперь nullable
-  final Color yellow = Color(0xFFFFD700);
+  double? income;
 
   List<Category> categories = [
     Category(name: "Продукты", percent: 25),
@@ -30,9 +30,58 @@ class _BudgetScreenState extends State<BudgetScreen> {
     Category(name: "Остальное", percent: 20),
   ];
 
-  double moneyFor(Category c) => income != null ? income! * c.percent / 100 : 0;
+  double moneyFor(Category c) =>
+      income != null ? income! * c.percent / 100 : 0;
 
-  // 🔹 Обновление процентов без автоматической фиксации
+  void editPercent(int index) async {
+    if (income == null) return;
+
+    final result = await showCustomInputDialog(
+      context: context,
+      title: "Введите %",
+      initialValue: categories[index].percent.toStringAsFixed(0),
+      suffix: "%",
+    );
+
+    if (result == null) return;
+
+    double lockedSum = categories
+        .where((c) => c.isLocked && c != categories[index])
+        .fold(0.0, (sum, c) => sum + c.percent);
+
+    double maxAllowed = (100 - lockedSum).clamp(0, 100).toDouble();
+
+    double newValue = result.clamp(0, maxAllowed);
+
+    updatePercent(index, newValue);
+  }
+
+  void editAmount(int index) async {
+    if (income == null) return;
+
+    final result = await showCustomInputDialog(
+      context: context,
+      title: "Введите сумму",
+      initialValue: moneyFor(categories[index]).toInt().toString(),
+      suffix: "₽",
+    );
+
+    if (result == null) return;
+
+    double lockedSum = categories
+        .where((c) => c.isLocked && c != categories[index])
+        .fold(0.0, (sum, c) => sum + c.percent);
+
+    double maxPercent = (100 - lockedSum).clamp(0, 100).toDouble();
+    double maxMoney = income! * maxPercent / 100;
+
+    double safeMoney = result.clamp(0, maxMoney);
+
+    double percent = (safeMoney / income!) * 100;
+
+    updatePercent(index, percent);
+  }
+
   void updatePercent(int index, double value) {
     if (income == null) return;
 
@@ -52,7 +101,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
           .where((c) => c != categories[index])
           .fold(0.0, (sum, c) => sum + c.percent);
 
-      double rest = (remaining - categories[index].percent).clamp(0, remaining);
+      double rest = (remaining - categories[index].percent)
+          .clamp(0, remaining);
 
       for (var c in unlocked) {
         if (c != categories[index]) {
@@ -80,6 +130,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
       if (unlocked.isEmpty) return;
 
       double currentSum = unlocked.fold(0.0, (sum, c) => sum + c.percent);
+
       if (currentSum == 0) {
         double perCategory = remaining / unlocked.length;
         for (var c in unlocked) c.percent = perCategory;
@@ -111,37 +162,28 @@ class _BudgetScreenState extends State<BudgetScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Верхний блок (доход)
+            // верхний блок
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  Text(
-                    "Мой бюджет",
-                    style: TextStyle(color: Colors.grey[400]),
-                  ),
+                  Text("Мой бюджет", style: subHeaderTextStyle),
                   SizedBox(height: 8),
-                  Text(
-                    income != null ? "${income!.toInt()} ₽" : "0 ₽",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Text(income != null ? "${income!.toInt()} ₽" : "0 ₽",
+                      style: headerTextStyle),
                   if (income == null)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         "Введите доход для распределения бюджета",
-                        style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                        style: infoTextStyle,
                       ),
                     ),
                 ],
               ),
             ),
 
-            // Ввод дохода
+            // ввод дохода
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TextField(
@@ -149,7 +191,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 style: TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: "Введите доход",
-                  hintStyle: TextStyle(color: Colors.grey),
+                  hintStyle: hintTextStyle,
                   filled: true,
                   fillColor: Colors.grey[900],
                   border: OutlineInputBorder(
@@ -169,7 +211,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
             SizedBox(height: 16),
 
-            // Белый блок с категориями
+            // блок с категориями
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
@@ -188,23 +230,21 @@ class _BudgetScreenState extends State<BudgetScreen> {
                           itemBuilder: (context, index) {
                             final category = categories[index];
 
-                            double maxSlider = category.isLocked || income == null
-                                ? category.percent
-                                : ((100 -
-                                            categories
-                                                .where((c) => c.isLocked)
-                                                .fold(0.0,
-                                                    (sum, c) => sum + c.percent))
-                                        .clamp(0, 100))
-                                    .toDouble();
+                            double maxSlider =
+                                category.isLocked || income == null
+                                    ? category.percent
+                                    : ((100 -
+                                                categories
+                                                    .where((c) => c.isLocked)
+                                                    .fold(0.0,
+                                                        (sum, c) => sum + c.percent))
+                                            .clamp(0, 100))
+                                        .toDouble();
 
                             return Container(
                               margin: EdgeInsets.symmetric(vertical: 8),
                               padding: EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
+                              decoration: categoryBoxDecoration,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -214,12 +254,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                     children: [
                                       Row(
                                         children: [
-                                          Text(
-                                            category.name,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
+                                          Text(category.name,
+                                              style: categoryTextStyle),
                                           SizedBox(width: 6),
                                           GestureDetector(
                                             onTap: () => toggleLock(index),
@@ -233,25 +269,34 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                           ),
                                         ],
                                       ),
-                                      TweenAnimationBuilder<double>(
-                                        tween: Tween<double>(
-                                            begin: 0, end: moneyFor(category)),
-                                        duration: Duration(milliseconds: 300),
-                                        builder: (context, value, child) {
-                                          return Text(
-                                            "${value.toInt()} ₽",
-                                            style:
-                                                TextStyle(color: Colors.grey[700]),
-                                          );
-                                        },
+
+                                      GestureDetector(
+                                        onTap: () => editAmount(index),
+                                        child: TweenAnimationBuilder<double>(
+                                          tween: Tween<double>(
+                                              begin: 0,
+                                              end: moneyFor(category)),
+                                          duration: Duration(milliseconds: 300),
+                                          builder: (context, value, child) {
+                                            return Text(
+                                                "${value.round()} ₽",
+                                                style: amountTextStyle);
+                                          },
+                                        ),
                                       ),
                                     ],
                                   ),
+
                                   SizedBox(height: 6),
-                                  Text(
-                                    "${category.percent.toStringAsFixed(0)}%",
-                                    style: TextStyle(color: Colors.grey),
+
+                                  GestureDetector(
+                                    onTap: () => editPercent(index),
+                                    child: Text(
+                                      "${category.percent.toStringAsFixed(0)}%",
+                                      style: percentTextStyle,
+                                    ),
                                   ),
+
                                   SliderTheme(
                                     data: SliderTheme.of(context).copyWith(
                                       activeTrackColor: yellow,
@@ -260,7 +305,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                       overlayColor: yellow.withOpacity(0.2),
                                     ),
                                     child: Slider(
-                                      value: category.percent,
+                                      value: category.percent.clamp(0, maxSlider),
                                       min: 0,
                                       max: maxSlider,
                                       divisions: 100,
@@ -275,7 +320,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
                           },
                         ),
                       ),
+
                       SizedBox(height: 10),
+
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
