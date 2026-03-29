@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'budget_screen.dart';
 
 abstract class MainScreen {
   static Widget getScreen() {
@@ -6,8 +7,25 @@ abstract class MainScreen {
   }
 }
 
-class PlaceholderScreen extends StatelessWidget {
+class PlaceholderScreen extends StatefulWidget {
   const PlaceholderScreen({super.key});
+
+  @override
+  State<PlaceholderScreen> createState() => _PlaceholderScreenState();
+}
+
+class _PlaceholderScreenState extends State<PlaceholderScreen> {
+  @override
+  void initState() {
+    super.initState();
+
+    // Автопереход через 2 секунды на BudgetScreen
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/budget');
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,15 +55,6 @@ class PlaceholderScreen extends StatelessWidget {
                 color: Colors.white,
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Главный экран приложения\nбудет добавлен позже',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.grey[400],
-                fontSize: 16,
               ),
             ),
           ],

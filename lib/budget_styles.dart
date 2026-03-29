@@ -1,37 +1,48 @@
 import 'package:flutter/material.dart';
 
 final Color yellow = Color(0xFFFFD700);
+final Color blackBackground = Color(0xFF121212);
+final Color darkGreyCard = Color(0xFF1E1E1E);
+final Color greyText = Color(0xFFB0B0B0);
+final Color lightGreyText = Color(0xFFDDDDDD);
 
-// текстовые стили
+// Текстовые стили
 TextStyle headerTextStyle = TextStyle(
   color: Colors.white,
   fontSize: 36,
   fontWeight: FontWeight.bold,
+  letterSpacing: 0.5,
 );
 
 TextStyle subHeaderTextStyle = TextStyle(
-  color: Colors.grey[400],
+  color: greyText,
+  fontSize: 16,
 );
 
 TextStyle hintTextStyle = TextStyle(
-  color: Colors.grey,
+  color: greyText,
+  fontSize: 14,
 );
 
 TextStyle infoTextStyle = TextStyle(
-  color: Colors.grey[500],
+  color: greyText,
   fontSize: 12,
 );
 
 TextStyle categoryTextStyle = TextStyle(
   fontWeight: FontWeight.bold,
+  color: lightGreyText,
+  fontSize: 16,
 );
 
 TextStyle percentTextStyle = TextStyle(
-  color: Colors.grey,
+  color: greyText,
+  fontSize: 14,
 );
 
 TextStyle amountTextStyle = TextStyle(
-  color: Colors.grey[700],
+  color: greyText,
+  fontSize: 14,
 );
 
 TextStyle dialogTitleStyle = TextStyle(
@@ -43,25 +54,40 @@ TextStyle dialogTitleStyle = TextStyle(
 TextStyle dialogButtonStyle(Color color, {bool bold = false}) => TextStyle(
       color: color,
       fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+      fontSize: 14,
     );
 
-// декорации
+// Декорации
 BoxDecoration categoryBoxDecoration = BoxDecoration(
-  color: Colors.white,
+  color: darkGreyCard,
   borderRadius: BorderRadius.circular(16),
+  boxShadow: [
+    BoxShadow(
+      color: Colors.black26,
+      blurRadius: 6,
+      offset: Offset(0, 3),
+    ),
+  ],
 );
 
 BoxDecoration dialogBoxDecoration = BoxDecoration(
-  color: Colors.grey[900],
+  color: blackBackground,
   borderRadius: BorderRadius.circular(20),
+  boxShadow: [
+    BoxShadow(
+      color: Colors.black38,
+      blurRadius: 10,
+      offset: Offset(0, 5),
+    ),
+  ],
 );
 
 BoxDecoration textFieldDecoration = BoxDecoration(
-  color: Colors.grey[800],
+  color: Color(0xFF1C1C1C),
   borderRadius: BorderRadius.circular(12),
 );
 
-// кастомный диалог ввода 
+// Кастомный диалог ввода
 Future<double?> showCustomInputDialog({
   required BuildContext context,
   required String title,
@@ -80,14 +106,14 @@ Future<double?> showCustomInputDialog({
         child: Material(
           color: Colors.transparent,
           child: Container(
-            width: 280,
-            padding: EdgeInsets.all(16),
+            width: 300,
+            padding: EdgeInsets.all(20),
             decoration: dialogBoxDecoration,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(title, style: dialogTitleStyle),
-                SizedBox(height: 12),
+                SizedBox(height: 16),
                 TextField(
                   controller: controller,
                   keyboardType: TextInputType.number,
@@ -95,16 +121,17 @@ Future<double?> showCustomInputDialog({
                   style: TextStyle(color: Colors.white, fontSize: 16),
                   decoration: InputDecoration(
                     filled: true,
-                    fillColor: Colors.grey[800],
+                    fillColor: Color(0xFF1C1C1C),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
                     ),
                     suffixText: suffix,
-                    suffixStyle: TextStyle(color: Colors.white),
+                    suffixStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                 ),
-                SizedBox(height: 16),
+                SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -112,10 +139,10 @@ Future<double?> showCustomInputDialog({
                       onPressed: () => Navigator.pop(context),
                       child: Text(
                         "Отмена",
-                        style: dialogButtonStyle(Colors.grey[400]!),
+                        style: dialogButtonStyle(greyText),
                       ),
                     ),
-                    SizedBox(width: 8),
+                    SizedBox(width: 12),
                     TextButton(
                       onPressed: () {
                         Navigator.pop(
@@ -145,3 +172,14 @@ Future<double?> showCustomInputDialog({
     },
   );
 }
+
+// Стили для слайдера
+SliderThemeData sliderTheme = SliderThemeData(
+  activeTrackColor: yellow,
+  inactiveTrackColor: Colors.grey[800],
+  thumbColor: yellow,
+  overlayColor: yellow.withOpacity(0.2),
+  trackHeight: 6,
+  thumbShape: RoundSliderThumbShape(enabledThumbRadius: 10),
+  overlayShape: RoundSliderOverlayShape(overlayRadius: 18),
+);

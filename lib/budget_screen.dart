@@ -158,7 +158,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: blackBackground,
       body: SafeArea(
         child: Column(
           children: [
@@ -215,7 +215,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: const Color.fromARGB(255, 40, 40, 40),
                   borderRadius: BorderRadius.vertical(
                     top: Radius.circular(24),
                   ),

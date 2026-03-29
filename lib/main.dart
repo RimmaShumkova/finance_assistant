@@ -1,24 +1,20 @@
 import 'package:flutter/material.dart';
 import 'budget_screen.dart';
 
-// auth flow
 import 'welcome_screen.dart';
 import 'phone_auth_screen.dart';
 import 'otp_verification_screen.dart';
 import 'main_screen.dart';
 
-// expenses
 import 'screens/expenses_screen.dart';
 
-// theme
 import 'theme/app_theme.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-<<<<<<< HEAD
   const MyApp({super.key});
 
   @override
@@ -27,10 +23,8 @@ class MyApp extends StatelessWidget {
       title: 'Finance Assistant',
       debugShowCheckedModeBanner: false,
 
-      // берём нормальную тему из первого варианта
       theme: AppTheme.darkTheme,
 
-      // старт через auth
       initialRoute: '/',
 
       routes: {
@@ -40,19 +34,10 @@ class MyApp extends StatelessWidget {
         '/otp-verification': (context) => const OtpVerificationScreen(),
         '/main': (context) => MainScreen.getScreen(),
 
-        // твои экраны
+        // screens
+        '/budget': (context) => BudgetScreen(),
         '/expenses': (context) => const ExpensesScreen(),
       },
-=======
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Smart Budget',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: BudgetScreen(),
->>>>>>> origin/feature/budget-screen
     );
   }
 }
