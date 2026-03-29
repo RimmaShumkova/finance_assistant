@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../theme/app_theme.dart';
 
 class PhoneAuthScreen extends StatefulWidget {
   const PhoneAuthScreen({super.key});
@@ -10,84 +11,41 @@ class PhoneAuthScreen extends StatefulWidget {
 
 class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
   final TextEditingController _phoneController = TextEditingController();
-  final Color yellow = const Color(0xFFFFD700);
   bool _isLoading = false;
 
-  @override
-  void dispose() {
-    _phoneController.dispose();
-    super.dispose();
-  }
-
-  bool _isValidPhone(String phone) {
-    String digits = phone.replaceAll(RegExp(r'[^0-9]'), '');
-    return digits.length >= 10;
-  }
+  bool _isValidPhone(String phone) => phone.replaceAll(RegExp(r'[^0-9]'), '').length >= 10;
 
   String _formatPhoneNumber(String value) {
     String digits = value.replaceAll(RegExp(r'[^0-9]'), '');
-    
     if (digits.isEmpty) return '';
-    
-    if (digits.length > 0 && (digits[0] == '7' || digits[0] == '8')) {
-      digits = digits.substring(1);
-    }
-    
+    if (digits[0] == '7' || digits[0] == '8') digits = digits.substring(1);
     String result = '+7';
-    
-    if (digits.length > 0) {
-      result += ' (${digits.substring(0, digits.length > 3 ? 3 : digits.length)}';
-    }
-    
-    if (digits.length >= 4) {
-      result += ') ${digits.substring(3, digits.length > 6 ? 6 : digits.length)}';
-    }
-    
-    if (digits.length >= 7) {
-      result += '-${digits.substring(6, digits.length > 8 ? 8 : digits.length)}';
-    }
-    
-    if (digits.length >= 9) {
-      result += '-${digits.substring(8, digits.length > 10 ? 10 : digits.length)}';
-    }
-    
+    if (digits.isNotEmpty) result += ' (${digits.substring(0, digits.length > 3 ? 3 : digits.length)}';
+    if (digits.length >= 4) result += ') ${digits.substring(3, digits.length > 6 ? 6 : digits.length)}';
+    if (digits.length >= 7) result += '-${digits.substring(6, digits.length > 8 ? 8 : digits.length)}';
+    if (digits.length >= 9) result += '-${digits.substring(8, digits.length > 10 ? 10 : digits.length)}';
     return result;
   }
 
   void _sendCode() {
     if (!_isValidPhone(_phoneController.text)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Введите корректный номер телефона')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(AppTheme.errorSnackBar('Введите корректный номер телефона'));
       return;
     }
-
-    setState(() {
-      _isLoading = true;
-    });
-
+    setState(() => _isLoading = true);
     Future.delayed(const Duration(seconds: 2), () {
-      setState(() {
-        _isLoading = false;
-      });
-      
-      Navigator.pushReplacementNamed(
-        context,
-        '/otp-verification',
-        arguments: _phoneController.text,
-      );
+      setState(() => _isLoading = false);
+      Navigator.pushReplacementNamed(context, '/otp-verification', arguments: _phoneController.text);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppTheme.black,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: AppTheme.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -98,88 +56,36 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-              const Text(
-                'Вход в аккаунт',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              const Text('Вход в аккаунт', style: AppTheme.titleLarge),
               const SizedBox(height: 8),
-              Text(
-                'Введите номер телефона для входа или регистрации',
-                style: TextStyle(
-                  color: Colors.grey[400],
-                  fontSize: 16,
-                ),
-              ),
+              Text('Введите номер телефона для входа или регистрации', style: AppTheme.bodyLarge),
               const SizedBox(height: 48),
               Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[900],
-                  borderRadius: BorderRadius.circular(16),
-                ),
+                decoration: AppTheme.cardDecoration(radius: 16, withShadow: false),
                 child: TextField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
-                  style: const TextStyle(color: Colors.white, fontSize: 18),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
-                  decoration: InputDecoration(
+                  style: const TextStyle(color: AppTheme.white, fontSize: 18),
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: AppTheme.inputDecoration(
                     hintText: '+7 (___) ___-__-__',
-                    hintStyle: TextStyle(color: Colors.grey[600], fontSize: 16),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.all(16),
-                    prefixIcon: Icon(Icons.phone, color: Colors.grey[400]),
+                    prefixIcon: Icon(Icons.phone, color: AppTheme.grey),
                   ),
-                  onChanged: (value) {
-                    setState(() {
-                      _phoneController.value = TextEditingValue(
-                        text: _formatPhoneNumber(value),
-                        selection: TextSelection.collapsed(
-                          offset: _formatPhoneNumber(value).length,
-                        ),
-                      );
-                    });
-                  },
+                  onChanged: (value) => setState(() {
+                    _phoneController.value = TextEditingValue(
+                      text: _formatPhoneNumber(value),
+                      selection: TextSelection.collapsed(offset: _formatPhoneNumber(value).length),
+                    );
+                  }),
                 ),
               ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: yellow,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  onPressed: _isLoading ? null : _sendCode,
-                  child: _isLoading
-                      ? SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.black.withOpacity(0.7),
-                            ),
-                          ),
-                        )
-                      : const Text(
-                          'Получить код',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                  style: AppTheme.yellowButtonLarge,
+                  onPressed: _sendCode,
+                  child: _isLoading ? AppTheme.smallProgress : const Text('Получить код', style: AppTheme.buttonLarge),
                 ),
               ),
               const SizedBox(height: 24),
@@ -187,10 +93,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                 child: Text(
                   'Нажимая «Получить код», вы соглашаетесь\nс условиями обработки данных',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
+                  style: AppTheme.bodySmall,
                 ),
               ),
             ],

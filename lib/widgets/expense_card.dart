@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/expense_category.dart';
 import '../theme/app_theme.dart';
+import '../theme/widget_styles.dart';
 
 class ExpenseCard extends StatelessWidget {
   final ExpenseCategory category;
@@ -13,34 +14,25 @@ class ExpenseCard extends StatelessWidget {
     final isNearLimit = category.spentPercentage > 0.9 && category.spentPercentage <= 1.0;
     
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppTheme.blackCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isOverBudget 
-              ? AppTheme.red.withOpacity(0.3) 
-              : AppTheme.grey.withOpacity(0.2),
-          width: 1,
-        ),
+      margin: WidgetStyles.cardMargin,
+      decoration: WidgetStyles.expenseCardDecoration(
+        isOverBudget: isOverBudget,
+        isNearLimit: isNearLimit,
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: WidgetStyles.cardPadding,
         child: Column(
           children: [
             Row(
               children: [
                 Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: Color(category.color).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(25),
-                  ),
+                  width: WidgetStyles.iconSize,
+                  height: WidgetStyles.iconSize,
+                  decoration: WidgetStyles.categoryIconDecoration(category.color),
                   child: Center(
                     child: Text(
                       category.icon,
-                      style: const TextStyle(fontSize: 24),
+                      style: const TextStyle(fontSize: WidgetStyles.iconFontSize),
                     ),
                   ),
                 ),
@@ -49,34 +41,18 @@ class ExpenseCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        category.name,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.white,
-                        ),
-                      ),
+                      Text(category.name, style: WidgetStyles.categoryNameStyle),
                       const SizedBox(height: 4),
                       Row(
                         children: [
                           Text(
                             'Потрачено: ${_formatMoney(category.spent)}',
-                            style: TextStyle(
-                              color: AppTheme.greyLight,
-                              fontSize: 12,
-                            ),
+                            style: WidgetStyles.spentTextStyle,
                           ),
                           const SizedBox(width: 8),
                           Text(
                             'Осталось: ${_formatMoney(category.remaining)}',
-                            style: TextStyle(
-                              color: isOverBudget
-                                  ? AppTheme.red
-                                  : AppTheme.green,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: WidgetStyles.remainingTextStyle(isOverBudget),
                           ),
                         ],
                       ),
@@ -85,27 +61,18 @@ class ExpenseCard extends StatelessWidget {
                 ),
                 Text(
                   '${(category.spentPercentage * 100).toInt()}%',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: isOverBudget 
-                        ? AppTheme.red 
-                        : AppTheme.yellow,
-                  ),
+                  style: WidgetStyles.percentageTextStyle(isOverBudget),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            // Progress Bar
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: LinearProgressIndicator(
                 value: category.spentPercentage.clamp(0.0, 1.0),
                 backgroundColor: AppTheme.grey.withOpacity(0.3),
-                color: isOverBudget 
-                    ? AppTheme.red 
-                    : Color(category.color),
-                minHeight: 8,
+                color: isOverBudget ? AppTheme.red : Color(category.color),
+                minHeight: WidgetStyles.progressHeight,
               ),
             ),
             const SizedBox(height: 8),
@@ -114,58 +81,31 @@ class ExpenseCard extends StatelessWidget {
               children: [
                 Text(
                   'Бюджет: ${_formatMoney(category.budget)}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.grey,
-                  ),
+                  style: AppTheme.bodySmall,
                 ),
                 if (isOverBudget)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.red.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: WidgetStyles.warningBadgeDecoration(AppTheme.red),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          size: 12,
-                          color: AppTheme.red,
-                        ),
+                        Icon(Icons.warning_amber_rounded, size: 12, color: AppTheme.red),
                         const SizedBox(width: 4),
                         Text(
                           'Бюджет превышен',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: AppTheme.red,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: WidgetStyles.warningTextStyle.copyWith(color: AppTheme.red),
                         ),
                       ],
                     ),
                   )
                 else if (isNearLimit)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.yellow.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: WidgetStyles.warningBadgeDecoration(AppTheme.yellow),
                     child: Text(
                       'Осталось мало',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: AppTheme.yellow,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: WidgetStyles.warningTextStyle.copyWith(color: AppTheme.yellow),
                     ),
                   ),
               ],

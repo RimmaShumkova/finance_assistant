@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../theme/app_theme.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   const OtpVerificationScreen({super.key});
@@ -9,12 +10,8 @@ class OtpVerificationScreen extends StatefulWidget {
 }
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
-  final List<TextEditingController> _otpControllers = List.generate(
-    6,
-    (index) => TextEditingController(),
-  );
+  final List<TextEditingController> _otpControllers = List.generate(6, (index) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
-  final Color yellow = const Color(0xFFFFD700);
   bool _isLoading = false;
   int _timerSeconds = 60;
   bool _canResend = false;
@@ -46,57 +43,37 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       _canResend = false;
     });
     _startTimer();
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Код отправлен повторно')),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(AppTheme.successSnackBar('Код отправлен повторно'));
   }
 
   void _verifyCode() {
     String code = _otpControllers.map((c) => c.text).join();
-    
     if (code.length != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Введите код из 6 цифр')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(AppTheme.errorSnackBar('Введите код из 6 цифр'));
       return;
     }
-
-    setState(() {
-      _isLoading = true;
-    });
-
+    setState(() => _isLoading = true);
     Future.delayed(const Duration(seconds: 2), () {
-      setState(() {
-        _isLoading = false;
-      });
-      
+      setState(() => _isLoading = false);
       Navigator.pushReplacementNamed(context, '/main');
     });
   }
 
   @override
   void dispose() {
-    for (var controller in _otpControllers) {
-      controller.dispose();
-    }
-    for (var focusNode in _focusNodes) {
-      focusNode.dispose();
-    }
+    for (var c in _otpControllers) c.dispose();
+    for (var f in _focusNodes) f.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final String? phoneNumber = ModalRoute.of(context)?.settings.arguments as String?;
-    
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppTheme.black,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: AppTheme.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -107,99 +84,43 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-              const Text(
-                'Подтверждение',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              const Text('Подтверждение', style: AppTheme.titleLarge),
               const SizedBox(height: 8),
-              Text(
-                'Введите код из SMS, отправленный на номер',
-                style: TextStyle(
-                  color: Colors.grey[400],
-                  fontSize: 16,
-                ),
-              ),
+              Text('Введите код из SMS, отправленный на номер', style: AppTheme.bodyLarge),
               const SizedBox(height: 8),
-              Text(
-                phoneNumber ?? '+7 (___) ___-__-__',
-                style: TextStyle(
-                  color: yellow,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Text(phoneNumber ?? '+7 (___) ___-__-__', style: AppTheme.accentText),
               const SizedBox(height: 48),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(6, (index) {
-                  return SizedBox(
-                    width: 50,
-                    height: 70,
-                    child: TextField(
-                      controller: _otpControllers[index],
-                      focusNode: _focusNodes[index],
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      inputFormatters: [
-                        LengthLimitingTextInputFormatter(1),
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: Colors.grey[900],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.all(12),
-                      ),
-                      onChanged: (value) {
-                        if (value.isNotEmpty && index < 5) {
-                          _focusNodes[index + 1].requestFocus();
-                        } else if (value.isEmpty && index > 0) {
-                          _focusNodes[index - 1].requestFocus();
-                        }
-                        
-                        if (index == 5 && value.isNotEmpty) {
-                          _verifyCode();
-                        }
-                      },
-                    ),
-                  );
-                }),
+                children: List.generate(6, (index) => SizedBox(
+                  width: 50,
+                  height: 70,
+                  child: TextField(
+                    controller: _otpControllers[index],
+                    focusNode: _focusNodes[index],
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppTheme.white, fontSize: 24, fontWeight: FontWeight.bold),
+                    inputFormatters: [LengthLimitingTextInputFormatter(1), FilteringTextInputFormatter.digitsOnly],
+                    decoration: AppTheme.otpInputDecoration(),
+                    onChanged: (value) {
+                      if (value.isNotEmpty && index < 5) _focusNodes[index + 1].requestFocus();
+                      if (value.isEmpty && index > 0) _focusNodes[index - 1].requestFocus();
+                      if (index == 5 && value.isNotEmpty) _verifyCode();
+                    },
+                  ),
+                )),
               ),
               const SizedBox(height: 32),
               Center(
                 child: Column(
                   children: [
                     if (!_canResend)
-                      Text(
-                        'Отправить код повторно через $_timerSeconds сек',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 14,
-                        ),
-                      ),
+                      Text('Отправить код повторно через $_timerSeconds сек', style: AppTheme.bodySmall),
                     if (_canResend)
                       TextButton(
                         onPressed: _resendCode,
-                        child: Text(
-                          'Отправить код повторно',
-                          style: TextStyle(
-                            color: yellow,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        child: const Text('Отправить код повторно', style: AppTheme.accentText),
                       ),
                   ],
                 ),
@@ -208,33 +129,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: yellow,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  onPressed: _isLoading ? null : _verifyCode,
-                  child: _isLoading
-                      ? SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.black.withOpacity(0.7),
-                            ),
-                          ),
-                        )
-                      : const Text(
-                          'Подтвердить',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                  style: AppTheme.yellowButtonLarge,
+                  onPressed: _verifyCode,
+                  child: _isLoading ? AppTheme.smallProgress : const Text('Подтвердить', style: AppTheme.buttonLarge),
                 ),
               ),
             ],

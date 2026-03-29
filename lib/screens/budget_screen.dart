@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
-import '../budget_styles.dart';
+import '../theme/app_theme.dart';
 
 class Category {
   String name;
   double percent;
   bool isLocked;
-
-  Category({
-    required this.name,
-    required this.percent,
-    this.isLocked = false,
-  });
+  Category({required this.name, required this.percent, this.isLocked = false});
 }
 
 class BudgetScreen extends StatefulWidget {
@@ -20,7 +15,6 @@ class BudgetScreen extends StatefulWidget {
 
 class _BudgetScreenState extends State<BudgetScreen> {
   double? income;
-
   List<Category> categories = [
     Category(name: "Продукты", percent: 25),
     Category(name: "Коммунальные", percent: 15),
@@ -30,87 +24,51 @@ class _BudgetScreenState extends State<BudgetScreen> {
     Category(name: "Остальное", percent: 20),
   ];
 
-  double moneyFor(Category c) =>
-      income != null ? income! * c.percent / 100 : 0;
+  double moneyFor(Category c) => income != null ? income! * c.percent / 100 : 0;
 
   void editPercent(int index) async {
     if (income == null) return;
-
-    final result = await showCustomInputDialog(
+    final result = await AppTheme.showCustomInputDialog(
       context: context,
       title: "Введите %",
       initialValue: categories[index].percent.toStringAsFixed(0),
       suffix: "%",
     );
-
     if (result == null) return;
-
-    double lockedSum = categories
-        .where((c) => c.isLocked && c != categories[index])
-        .fold(0.0, (sum, c) => sum + c.percent);
-
+    double lockedSum = categories.where((c) => c.isLocked && c != categories[index]).fold(0.0, (sum, c) => sum + c.percent);
     double maxAllowed = (100 - lockedSum).clamp(0, 100).toDouble();
-
-    double newValue = result.clamp(0, maxAllowed);
-
-    updatePercent(index, newValue);
+    updatePercent(index, result.clamp(0, maxAllowed));
   }
 
   void editAmount(int index) async {
     if (income == null) return;
-
-    final result = await showCustomInputDialog(
+    final result = await AppTheme.showCustomInputDialog(
       context: context,
       title: "Введите сумму",
       initialValue: moneyFor(categories[index]).toInt().toString(),
       suffix: "₽",
     );
-
     if (result == null) return;
-
-    double lockedSum = categories
-        .where((c) => c.isLocked && c != categories[index])
-        .fold(0.0, (sum, c) => sum + c.percent);
-
+    double lockedSum = categories.where((c) => c.isLocked && c != categories[index]).fold(0.0, (sum, c) => sum + c.percent);
     double maxPercent = (100 - lockedSum).clamp(0, 100).toDouble();
     double maxMoney = income! * maxPercent / 100;
-
-    double safeMoney = result.clamp(0, maxMoney);
-
-    double percent = (safeMoney / income!) * 100;
-
+    double percent = (result.clamp(0, maxMoney) / income!) * 100;
     updatePercent(index, percent);
   }
 
   void updatePercent(int index, double value) {
     if (income == null) return;
-
     setState(() {
       categories[index].percent = value;
-
-      double lockedSum = categories
-          .where((c) => c.isLocked)
-          .fold(0.0, (sum, c) => sum + c.percent);
-
+      double lockedSum = categories.where((c) => c.isLocked).fold(0.0, (sum, c) => sum + c.percent);
       double remaining = (100 - lockedSum).clamp(0, 100);
-
       var unlocked = categories.where((c) => !c.isLocked).toList();
       if (unlocked.isEmpty) return;
-
-      double otherSum = unlocked
-          .where((c) => c != categories[index])
-          .fold(0.0, (sum, c) => sum + c.percent);
-
-      double rest = (remaining - categories[index].percent)
-          .clamp(0, remaining);
-
+      double otherSum = unlocked.where((c) => c != categories[index]).fold(0.0, (sum, c) => sum + c.percent);
+      double rest = (remaining - categories[index].percent).clamp(0, remaining);
       for (var c in unlocked) {
         if (c != categories[index]) {
-          if (otherSum == 0) {
-            c.percent = rest / (unlocked.length - 1);
-          } else {
-            c.percent = (c.percent / otherSum) * rest;
-          }
+          c.percent = otherSum == 0 ? rest / (unlocked.length - 1) : (c.percent / otherSum) * rest;
         }
       }
     });
@@ -119,110 +77,64 @@ class _BudgetScreenState extends State<BudgetScreen> {
   void toggleLock(int index) {
     setState(() {
       categories[index].isLocked = !categories[index].isLocked;
-
-      double lockedSum = categories
-          .where((c) => c.isLocked)
-          .fold(0.0, (sum, c) => sum + c.percent);
-
+      double lockedSum = categories.where((c) => c.isLocked).fold(0.0, (sum, c) => sum + c.percent);
       double remaining = (100 - lockedSum).clamp(0, 100);
-
       var unlocked = categories.where((c) => !c.isLocked).toList();
       if (unlocked.isEmpty) return;
-
       double currentSum = unlocked.fold(0.0, (sum, c) => sum + c.percent);
-
       if (currentSum == 0) {
         double perCategory = remaining / unlocked.length;
         for (var c in unlocked) c.percent = perCategory;
       } else {
-        for (var c in unlocked) {
-          c.percent = (c.percent / currentSum) * remaining;
-        }
+        for (var c in unlocked) c.percent = (c.percent / currentSum) * remaining;
       }
     });
   }
 
   void saveBudget() {
     if (income == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Сначала введите доход")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(AppTheme.errorSnackBar("Сначала введите доход"));
       return;
     }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Бюджет сохранён")),
-    );
-    
-    // Переход на экран расходов
+    ScaffoldMessenger.of(context).showSnackBar(AppTheme.successSnackBar("Бюджет сохранён"));
     Navigator.pushNamed(context, '/expenses');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: blackBackground,
+      backgroundColor: AppTheme.black,
       body: SafeArea(
         child: Column(
           children: [
-            // верхний блок
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  Text("Мой бюджет", style: subHeaderTextStyle),
-                  SizedBox(height: 8),
-                  Text(income != null ? "${income!.toInt()} ₽" : "0 ₽",
-                      style: headerTextStyle),
+                  Text("Мой бюджет", style: AppTheme.bodyLarge),
+                  const SizedBox(height: 8),
+                  Text(income != null ? "${income!.toInt()} ₽" : "0 ₽", style: AppTheme.headlineLarge),
                   if (income == null)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        "Введите доход для распределения бюджета",
-                        style: infoTextStyle,
-                      ),
+                      child: Text("Введите доход для распределения бюджета", style: AppTheme.bodySmall),
                     ),
                 ],
               ),
             ),
-
-            // ввод дохода
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TextField(
                 keyboardType: TextInputType.number,
-                style: TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: "Введите доход",
-                  hintStyle: hintTextStyle,
-                  filled: true,
-                  fillColor: Colors.grey[900],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  suffixText: "₽",
-                  suffixStyle: TextStyle(color: Colors.white),
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    income = double.tryParse(value);
-                  });
-                },
+                style: const TextStyle(color: AppTheme.white),
+                decoration: AppTheme.inputDecoration(hintText: "Введите доход", suffixText: "₽"),
+                onChanged: (value) => setState(() => income = double.tryParse(value)),
               ),
             ),
-
-            SizedBox(height: 16),
-
-            // блок с категориями
+            const SizedBox(height: 16),
             Expanded(
               child: Container(
-                decoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 40, 40, 40),
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(24),
-                  ),
-                ),
+                decoration: AppTheme.darkContainer,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -232,89 +144,57 @@ class _BudgetScreenState extends State<BudgetScreen> {
                           itemCount: categories.length,
                           itemBuilder: (context, index) {
                             final category = categories[index];
-
-                            double maxSlider =
-                                category.isLocked || income == null
-                                    ? category.percent
-                                    : ((100 -
-                                                categories
-                                                    .where((c) => c.isLocked)
-                                                    .fold(0.0,
-                                                        (sum, c) => sum + c.percent))
-                                            .clamp(0, 100))
-                                        .toDouble();
-
+                            double maxSlider = category.isLocked || income == null
+                                ? category.percent
+                                : (100 - categories.where((c) => c.isLocked).fold(0.0, (sum, c) => sum + c.percent)).clamp(0, 100).toDouble();
                             return Container(
-                              margin: EdgeInsets.symmetric(vertical: 8),
-                              padding: EdgeInsets.all(12),
-                              decoration: categoryBoxDecoration,
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              padding: const EdgeInsets.all(12),
+                              decoration: AppTheme.cardDecoration(),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Row(
                                         children: [
-                                          Text(category.name,
-                                              style: categoryTextStyle),
-                                          SizedBox(width: 6),
+                                          Text(category.name, style: AppTheme.titleSmall),
+                                          const SizedBox(width: 6),
                                           GestureDetector(
                                             onTap: () => toggleLock(index),
-                                            child: Icon(
-                                              category.isLocked
-                                                  ? Icons.lock
-                                                  : Icons.lock_open,
-                                              size: 16,
-                                              color: Colors.grey,
-                                            ),
+                                            child: Icon(category.isLocked ? Icons.lock : Icons.lock_open, size: 16, color: AppTheme.grey),
                                           ),
                                         ],
                                       ),
-
                                       GestureDetector(
                                         onTap: () => editAmount(index),
                                         child: TweenAnimationBuilder<double>(
-                                          tween: Tween<double>(
-                                              begin: 0,
-                                              end: moneyFor(category)),
-                                          duration: Duration(milliseconds: 300),
-                                          builder: (context, value, child) {
-                                            return Text(
-                                                "${value.round()} ₽",
-                                                style: amountTextStyle);
-                                          },
+                                          tween: Tween<double>(begin: 0, end: moneyFor(category)),
+                                          duration: const Duration(milliseconds: 300),
+                                          builder: (context, value, child) => Text("${value.round()} ₽", style: AppTheme.bodyMedium),
                                         ),
                                       ),
                                     ],
                                   ),
-
-                                  SizedBox(height: 6),
-
+                                  const SizedBox(height: 6),
                                   GestureDetector(
                                     onTap: () => editPercent(index),
-                                    child: Text(
-                                      "${category.percent.toStringAsFixed(0)}%",
-                                      style: percentTextStyle,
-                                    ),
+                                    child: Text("${category.percent.toStringAsFixed(0)}%", style: AppTheme.bodyMedium),
                                   ),
-
                                   SliderTheme(
                                     data: SliderTheme.of(context).copyWith(
-                                      activeTrackColor: yellow,
-                                      inactiveTrackColor: Colors.grey[300],
+                                      activeTrackColor: AppTheme.yellow,
+                                      inactiveTrackColor: AppTheme.grey,
                                       thumbColor: Colors.black,
-                                      overlayColor: yellow.withOpacity(0.2),
+                                      overlayColor: AppTheme.yellowLight,
                                     ),
                                     child: Slider(
                                       value: category.percent.clamp(0, maxSlider),
                                       min: 0,
                                       max: maxSlider,
                                       divisions: 100,
-                                      onChanged: category.isLocked || income == null
-                                          ? null
-                                          : (value) => updatePercent(index, value),
+                                      onChanged: category.isLocked || income == null ? null : (value) => updatePercent(index, value),
                                     ),
                                   ),
                                 ],
@@ -323,25 +203,13 @@ class _BudgetScreenState extends State<BudgetScreen> {
                           },
                         ),
                       ),
-
-                      SizedBox(height: 10),
-
+                      const SizedBox(height: 10),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: yellow,
-                            foregroundColor: Colors.black,
-                            padding: EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
+                          style: AppTheme.yellowButtonMedium,
                           onPressed: saveBudget,
-                          child: Text(
-                            "Сохранить",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
+                          child: const Text("Сохранить"),
                         ),
                       ),
                     ],

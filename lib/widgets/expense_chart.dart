@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/expense_category.dart';
 import '../theme/app_theme.dart';
+import '../theme/widget_styles.dart';
 
 class ExpenseChart extends StatelessWidget {
   final List<ExpenseCategory> categories;
@@ -10,42 +11,22 @@ class ExpenseChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final totalSpent = categories.fold(0.0, (sum, item) => sum + item.spent);
-    final nonEmptyCategories =
-        categories.where((c) => c.spent > 0).toList();
+    final nonEmptyCategories = categories.where((c) => c.spent > 0).toList();
 
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.blackCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppTheme.grey.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
+      margin: WidgetStyles.chartMargin,
+      padding: WidgetStyles.chartPadding,
+      decoration: WidgetStyles.chartContainerDecoration,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Структура расходов',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.white,
-            ),
-          ),
+          const Text('Структура расходов', style: WidgetStyles.chartTitleStyle),
           const SizedBox(height: 16),
           if (totalSpent == 0)
             Center(
               child: Padding(
                 padding: const EdgeInsets.all(32),
-                child: Text(
-                  'Нет данных о расходах',
-                  style: TextStyle(
-                    color: AppTheme.grey,
-                  ),
-                ),
+                child: Text('Нет данных о расходах', style: WidgetStyles.emptyChartStyle),
               ),
             )
           else
@@ -70,46 +51,25 @@ class ExpenseChart extends StatelessWidget {
 
   Widget _buildPieChart(BuildContext context, List<ExpenseCategory> categories, double total) {
     return SizedBox(
-      height: 150,
-      width: 150,
+      height: WidgetStyles.pieChartSize,
+      width: WidgetStyles.pieChartSize,
       child: Stack(
         alignment: Alignment.center,
         children: [
           CustomPaint(
-            size: const Size(150, 150),
+            size: const Size(WidgetStyles.pieChartSize, WidgetStyles.pieChartSize),
             painter: PieChartPainter(categories: categories, total: total),
           ),
           Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              color: AppTheme.blackCard,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppTheme.grey.withOpacity(0.3),
-                width: 1,
-              ),
-            ),
+            width: WidgetStyles.centerCircleSize,
+            height: WidgetStyles.centerCircleSize,
+            decoration: WidgetStyles.centerCircleDecoration,
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    '${total.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.white,
-                    ),
-                  ),
-                  Text(
-                    '₽',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.yellow,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  Text('${total.toStringAsFixed(0)}', style: WidgetStyles.centerAmountStyle),
+                  Text('₽', style: WidgetStyles.centerCurrencyStyle),
                 ],
               ),
             ),
@@ -129,44 +89,20 @@ class ExpenseChart extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: Color(category.color),
-                  borderRadius: BorderRadius.circular(2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(category.color).withOpacity(0.5),
-                      blurRadius: 2,
-                      spreadRadius: 0,
-                    ),
-                  ],
-                ),
+                width: WidgetStyles.legendColorSize,
+                height: WidgetStyles.legendColorSize,
+                decoration: WidgetStyles.legendColorBox(category.color),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  category.name,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.white,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                child: Text(category.name, style: WidgetStyles.legendTextStyle),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Color(category.color).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                decoration: WidgetStyles.legendPercentageBadge(category.color),
                 child: Text(
                   '${percentage.toStringAsFixed(1)}%',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Color(category.color),
-                  ),
+                  style: WidgetStyles.legendPercentageStyle(category.color),
                 ),
               ),
             ],
@@ -192,11 +128,9 @@ class PieChartPainter extends CustomPainter {
     for (var category in categories) {
       final sweepAngle = (category.spent / total) * 2 * 3.14159;
       
-      // Основной сегмент
       final paint = Paint()
         ..color = Color(category.color)
-        ..style = PaintingStyle.fill
-        ..strokeWidth = 0;
+        ..style = PaintingStyle.fill;
       
       canvas.drawArc(
         Rect.fromLTWH(0, 0, size.width, size.height),
@@ -206,7 +140,6 @@ class PieChartPainter extends CustomPainter {
         paint,
       );
       
-      // Добавляем тонкую обводку для контраста
       final strokePaint = Paint()
         ..color = AppTheme.blackCard
         ..style = PaintingStyle.stroke
@@ -223,7 +156,6 @@ class PieChartPainter extends CustomPainter {
       startAngle += sweepAngle;
     }
     
-    // Рисуем внешнюю обводку
     final outlinePaint = Paint()
       ..color = AppTheme.yellow.withOpacity(0.3)
       ..style = PaintingStyle.stroke
