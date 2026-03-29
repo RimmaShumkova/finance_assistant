@@ -153,6 +153,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Бюджет сохранён")),
     );
+    
+    // Переход на экран расходов
+    Navigator.pushNamed(context, '/expenses');
   }
 
   @override

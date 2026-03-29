@@ -60,13 +60,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   }
 
   void _onEditPressed() {
-    // TODO: Открыть экран редактирования категорий
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Редактирование категорий'),
-        backgroundColor: AppTheme.blackCard,
-      ),
-    );
+    // Переход на экран бюджета для редактирования
+    Navigator.pushNamed(context, '/budget');
   }
 
   void _onSavingsPressed() {
