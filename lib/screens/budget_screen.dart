@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'budget_styles.dart';
+import '../budget_styles.dart';
 
 class Category {
   String name;

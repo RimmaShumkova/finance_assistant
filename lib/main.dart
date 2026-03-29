@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'budget_screen.dart';
 
-import 'welcome_screen.dart';
-import 'phone_auth_screen.dart';
-import 'otp_verification_screen.dart';
-import 'main_screen.dart';
-
+import 'screens/budget_screen.dart';
+import 'screens/welcome_screen.dart';
+import 'screens/phone_auth_screen.dart';
+import 'screens/otp_verification_screen.dart';
+import 'screens/main_screen.dart';
 import 'screens/expenses_screen.dart';
 
 import 'theme/app_theme.dart';
