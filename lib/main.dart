@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'budget_screen.dart';
 
 // auth flow
 import 'welcome_screen.dart';
@@ -13,10 +14,11 @@ import 'screens/expenses_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
+<<<<<<< HEAD
   const MyApp({super.key});
 
   @override
@@ -41,6 +43,16 @@ class MyApp extends StatelessWidget {
         // твои экраны
         '/expenses': (context) => const ExpensesScreen(),
       },
+=======
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Smart Budget',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: BudgetScreen(),
+>>>>>>> origin/feature/budget-screen
     );
   }
 }
