@@ -163,75 +163,40 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   }
 
   Widget _buildActionButtons() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    child: ElevatedButton(
+      onPressed: _onEditPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppTheme.blackCard,
+        foregroundColor: AppTheme.white,
+        elevation: 0,
+        side: BorderSide(
+          color: AppTheme.yellow.withOpacity(0.5),
+          width: 1,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+      ),
       child: Row(
-        children: [
-          Expanded(
-            child: ElevatedButton(
-              onPressed: _onEditPressed,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.blackCard,
-                foregroundColor: AppTheme.white,
-                elevation: 0,
-                side: BorderSide(
-                  color: AppTheme.yellow.withOpacity(0.5),
-                  width: 1,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.edit, size: 18),
-                  SizedBox(width: 8),
-                  Text(
-                    'Редактировать',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: ElevatedButton(
-              onPressed: _onSavingsPressed,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.yellow,
-                foregroundColor: Colors.black,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.savings, size: 18),
-                  SizedBox(width: 8),
-                  Text(
-                    'Накопления',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          Icon(Icons.edit, size: 18),
+          SizedBox(width: 8),
+          Text(
+            'Редактировать',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildTotalStats() {
     final totalSpent = _categories.fold(0.0, (sum, item) => sum + item.spent);

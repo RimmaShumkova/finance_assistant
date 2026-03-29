@@ -56,7 +56,7 @@ class ApiService {
       ),
       ExpenseCategory(
         id: '4',
-        name: 'Коммуналка',
+        name: 'Коммунальные услуги',
         icon: '💡',
         color: 0xFF96CEB4,
         spent: 6500,
@@ -65,8 +65,8 @@ class ApiService {
       ),
       ExpenseCategory(
         id: '5',
-        name: 'Здоровье',
-        icon: '💊',
+        name: 'Накопления',
+        icon: '🏦',
         color: 0xFFFFEAA7,
         spent: 2800,
         budget: 4000,
@@ -74,8 +74,8 @@ class ApiService {
       ),
       ExpenseCategory(
         id: '6',
-        name: 'Шопинг',
-        icon: '🛍️',
+        name: 'Остальное',
+        icon: '📦',
         color: 0xFFDDA0DD,
         spent: 9200,
         budget: 10000,
