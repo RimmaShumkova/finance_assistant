@@ -34,7 +34,10 @@ class MyApp extends StatelessWidget {
         '/main': (context) => MainScreen.getScreen(),
 
         // screens
-        '/budget': (context) => BudgetScreen(),
+        '/budget': (context) => BudgetScreen(
+    initialCategories: (ModalRoute.of(context)!.settings.arguments as Map?)?['initialCategories'],
+    initialIncome: (ModalRoute.of(context)!.settings.arguments as Map?)?['initialIncome'],
+  ),
         '/expenses': (context) => const ExpensesScreen(),
       },
     );

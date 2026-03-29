@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:finance_assistant/services/api_service.dart';
-import 'package:finance_assistant/models/expense_category.dart';
-import 'package:finance_assistant/widgets/expense_card.dart';
-import 'package:finance_assistant/widgets/expense_chart.dart';
-import 'package:finance_assistant/theme/app_theme.dart';
+import '../theme/app_theme.dart';
+import '../models/expense_category.dart';
+import '../services/api_service.dart';
+import '../widgets/expense_chart.dart';
 
 class ExpensesScreen extends StatefulWidget {
   const ExpensesScreen({Key? key}) : super(key: key);
@@ -13,17 +12,30 @@ class ExpensesScreen extends StatefulWidget {
 }
 
 class _ExpensesScreenState extends State<ExpensesScreen> {
-  final ApiService _apiService = ApiService();
   List<ExpenseCategory> _categories = [];
   bool _isLoading = true;
   String? _error;
   String _currentMonth = '';
+  double? _income;
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
     super.initState();
     _currentMonth = _getCurrentMonth();
-    _loadData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)!.settings.arguments as Map?;
+    if (args != null) {
+      _income = args['income'] as double?;
+      _categories = List<ExpenseCategory>.from(args['categories'] as List);
+      _isLoading = false;
+    } else {
+      _loadData();
+    }
   }
 
   String _getCurrentMonth() {
@@ -60,22 +72,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   }
 
   void _onEditPressed() {
-    // TODO: Открыть экран редактирования категорий
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Редактирование категорий'),
-        backgroundColor: AppTheme.blackCard,
-      ),
-    );
-  }
-
-  void _onSavingsPressed() {
-    // TODO: Открыть экран накоплений
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Накопления'),
-        backgroundColor: AppTheme.blackCard,
-      ),
+    Navigator.pushReplacementNamed(
+      context,
+      '/budget',
+      arguments: {
+        'initialIncome': _income,
+        'initialCategories': _categories,
+      }
     );
   }
 
@@ -131,13 +134,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     children: [
-                      // Общая статистика
                       _buildTotalStats(),
                       const SizedBox(height: 16),
-                      // Круговая диаграмма
                       if (_categories.isNotEmpty)
                         ExpenseChart(categories: _categories),
-                      // Карточки категорий
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 16),
                         child: Text(
@@ -151,9 +151,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       ),
                       const SizedBox(height: 8),
                       ..._categories.map((category) =>
-                          ExpenseCard(category: category)),
+                          _buildExpenseCard(category)),
                       const SizedBox(height: 16),
-                      // Кнопки действий
                       _buildActionButtons(),
                       const SizedBox(height: 80),
                     ],
@@ -162,54 +161,184 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     );
   }
 
-  Widget _buildActionButtons() {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16),
-    child: ElevatedButton(
-      onPressed: _onEditPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppTheme.blackCard,
-        foregroundColor: AppTheme.white,
-        elevation: 0,
-        side: BorderSide(
-          color: AppTheme.yellow.withOpacity(0.5),
+  Widget _buildExpenseCard(ExpenseCategory category) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.blackCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppTheme.yellow.withOpacity(0.2),
           width: 1,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 14),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          Icon(Icons.edit, size: 18),
-          SizedBox(width: 8),
-          Text(
-            'Редактировать',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  // Цветовой кружок вместо эмодзи
+                  Container(
+                    width: 24,
+                    height: 24,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: Color(category.color),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Icon(
+                        _getIconForCategory(category.name),
+                        size: 14,
+                        color: AppTheme.black,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    category.name,
+                    style: const TextStyle(
+                      color: AppTheme.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              IconButton(
+                icon: Icon(
+                  category.isLocked ? Icons.lock : Icons.lock_open,
+                  color: AppTheme.grey,
+                  size: 20,
+                ),
+                onPressed: () {
+                  setState(() {
+                    int index = _categories.indexOf(category);
+                    _categories[index] = category.copyWith(isLocked: !category.isLocked);
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: category.spentPercentage,
+            backgroundColor: AppTheme.grey.withOpacity(0.3),
+            color: category.spent > category.budget ? AppTheme.red : AppTheme.yellow,
+            minHeight: 6,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: "${category.spent.toStringAsFixed(0)} ₽",
+                      style: TextStyle(
+                        color: category.spent > category.budget
+                            ? AppTheme.red
+                            : AppTheme.yellow,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    TextSpan(
+                      text: " / ${category.budget.toStringAsFixed(0)} ₽",
+                      style: TextStyle(
+                        color: AppTheme.grey,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                "${(category.spentPercentage * 100).toStringAsFixed(0)}%",
+                style: TextStyle(
+                  color: category.spent > category.budget
+                      ? AppTheme.red
+                      : AppTheme.yellow,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
         ],
       ),
-    ),
-  );
-}
+    );
+  }
+
+  // Метод для выбора иконки в зависимости от категории
+  IconData _getIconForCategory(String categoryName) {
+    switch (categoryName.toLowerCase()) {
+      case 'продукты':
+        return Icons.shopping_basket;
+      case 'транспорт':
+        return Icons.directions_car;
+      case 'развлечения':
+        return Icons.local_movies;
+      case 'коммунальные услуги':
+        return Icons.lightbulb;
+      case 'накопления':
+        return Icons.account_balance;
+      default:
+        return Icons.category;
+    }
+  }
+
+  Widget _buildActionButtons() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: ElevatedButton(
+        onPressed: _onEditPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppTheme.blackCard,
+          foregroundColor: AppTheme.white,
+          elevation: 0,
+          side: BorderSide(
+            color: AppTheme.yellow.withOpacity(0.5),
+            width: 1,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(Icons.edit, size: 18),
+            SizedBox(width: 8),
+            Text(
+              'Редактировать бюджет',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildTotalStats() {
     final totalSpent = _categories.fold(0.0, (sum, item) => sum + item.spent);
     final totalBudget = _categories.fold(0.0, (sum, item) => sum + item.budget);
     final totalRemaining = totalBudget - totalSpent;
-    final totalPercentage = (totalSpent / totalBudget).clamp(0.0, 1.0);
-    
-    // Получаем текущий день месяца
+    final totalPercentage = totalBudget > 0 ? (totalSpent / totalBudget).clamp(0.0, 1.0) : 0.0;
+
     final currentDay = DateTime.now().day;
     final daysInMonth = DateTime.now().month == 2
         ? (DateTime.now().year % 4 == 0 ? 29 : 28)
         : [4, 6, 9, 11].contains(DateTime.now().month) ? 30 : 31;
-    
+
     final dayProgress = currentDay / daysInMonth;
     final isOnTrack = totalPercentage <= dayProgress + 0.1;
 
@@ -244,8 +373,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: isOnTrack 
-                      ? AppTheme.green.withOpacity(0.15) 
+                  color: isOnTrack
+                      ? AppTheme.green.withOpacity(0.15)
                       : AppTheme.red.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),

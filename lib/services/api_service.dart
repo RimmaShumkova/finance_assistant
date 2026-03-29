@@ -3,21 +3,10 @@ import 'package:http/http.dart' as http;
 import '../models/expense_category.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://api.example.com'; // Замените на ваш API
+  static const String baseUrl = 'https://api.example.com';
 
-  // Имитация API запроса
   Future<List<ExpenseCategory>> getTransactions() async {
     try {
-      // Реальный API запрос:
-      // final response = await http.get(
-      //   Uri.parse('$baseUrl/transactions'),
-      //   headers: {'Content-Type': 'application/json'},
-      // );
-      // if (response.statusCode == 200) {
-      //   return parseCategories(json.decode(response.body));
-      // }
-
-      // Имитация данных для демонстрации
       await Future.delayed(const Duration(seconds: 1));
       return _getMockData();
     } catch (e) {
@@ -30,7 +19,6 @@ class ApiService {
       ExpenseCategory(
         id: '1',
         name: 'Продукты',
-        icon: '🍔',
         color: 0xFFFF6B6B,
         spent: 12500,
         budget: 15000,
@@ -39,7 +27,6 @@ class ApiService {
       ExpenseCategory(
         id: '2',
         name: 'Транспорт',
-        icon: '🚗',
         color: 0xFF4ECDC4,
         spent: 3500,
         budget: 5000,
@@ -48,7 +35,6 @@ class ApiService {
       ExpenseCategory(
         id: '3',
         name: 'Развлечения',
-        icon: '🎬',
         color: 0xFF45B7D1,
         spent: 4800,
         budget: 8000,
@@ -57,7 +43,6 @@ class ApiService {
       ExpenseCategory(
         id: '4',
         name: 'Коммунальные услуги',
-        icon: '💡',
         color: 0xFF96CEB4,
         spent: 6500,
         budget: 7000,
@@ -66,7 +51,6 @@ class ApiService {
       ExpenseCategory(
         id: '5',
         name: 'Накопления',
-        icon: '🏦',
         color: 0xFFFFEAA7,
         spent: 2800,
         budget: 4000,
@@ -75,7 +59,6 @@ class ApiService {
       ExpenseCategory(
         id: '6',
         name: 'Остальное',
-        icon: '📦',
         color: 0xFFDDA0DD,
         spent: 9200,
         budget: 10000,
@@ -84,9 +67,7 @@ class ApiService {
     ];
   }
 
-  // Обновление данных с сервера
   Future<void> refreshData() async {
-    // Здесь можно добавить логику обновления
     await Future.delayed(const Duration(seconds: 1));
   }
 }

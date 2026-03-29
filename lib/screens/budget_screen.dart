@@ -1,28 +1,47 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-
-class Category {
-  String name;
-  double percent;
-  bool isLocked;
-  Category({required this.name, required this.percent, this.isLocked = false});
-}
+import '../models/expense_category.dart';
+import 'package:uuid/uuid.dart';
 
 class BudgetScreen extends StatefulWidget {
+  final List<ExpenseCategory>? initialCategories;
+  final double? initialIncome;
+
+  const BudgetScreen({Key? key, this.initialCategories, this.initialIncome}) : super(key: key);
+
   @override
   _BudgetScreenState createState() => _BudgetScreenState();
 }
 
 class _BudgetScreenState extends State<BudgetScreen> {
   double? income;
-  List<Category> categories = [
-    Category(name: "Продукты", percent: 25),
-    Category(name: "Коммунальные", percent: 15),
-    Category(name: "Развлечения", percent: 10),
-    Category(name: "Транспорт", percent: 10),
-    Category(name: "Накопления", percent: 20),
-    Category(name: "Остальное", percent: 20),
-  ];
+  List<Category> categories = [];
+  final Uuid _uuid = Uuid();
+
+  @override
+  void initState() {
+    super.initState();
+    income = widget.initialIncome;
+    if (widget.initialCategories != null && widget.initialCategories!.isNotEmpty) {
+      categories = widget.initialCategories!.map((e) =>
+        Category(
+          name: e.name,
+          percent: (e.budget / (income ?? 1)) * 100,
+          isLocked: e.isLocked,
+          color: e.color,
+        )
+      ).toList();
+    } else {
+      categories = [
+        Category(name: "Продукты", percent: 25, color: 0xFFFF6B6B),
+        Category(name: "Коммунальные", percent: 15, color: 0xFF96CEB4),
+        Category(name: "Развлечения", percent: 10, color: 0xFF45B7D1),
+        Category(name: "Транспорт", percent: 10, color: 0xFF4ECDC4),
+        Category(name: "Накопления", percent: 20, color: 0xFFFFEAA7),
+        Category(name: "Остальное", percent: 20, color: 0xFFDDA0DD),
+      ];
+    }
+  }
 
   double moneyFor(Category c) => income != null ? income! * c.percent / 100 : 0;
 
@@ -96,8 +115,27 @@ class _BudgetScreenState extends State<BudgetScreen> {
       ScaffoldMessenger.of(context).showSnackBar(AppTheme.errorSnackBar("Сначала введите доход"));
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(AppTheme.successSnackBar("Бюджет сохранён"));
-    Navigator.pushNamed(context, '/expenses');
+
+    List<ExpenseCategory> expenseCategories = categories.map((c) =>
+      ExpenseCategory(
+        id: _uuid.v4(),
+        name: c.name,
+        color: c.color,
+        spent: 0,
+        budget: moneyFor(c),
+        transactions: [],
+        isLocked: c.isLocked,
+      )
+    ).toList();
+
+    Navigator.pushReplacementNamed(
+      context,
+      '/expenses',
+      arguments: {
+        'income': income,
+        'categories': expenseCategories,
+      }
+    );
   }
 
   @override
@@ -159,6 +197,16 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                     children: [
                                       Row(
                                         children: [
+                                          // Цветовой кружок вместо иконки
+                                          Container(
+                                            width: 20,
+                                            height: 20,
+                                            margin: const EdgeInsets.only(right: 8),
+                                            decoration: BoxDecoration(
+                                              color: Color(category.color),
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
                                           Text(category.name, style: AppTheme.titleSmall),
                                           const SizedBox(width: 6),
                                           GestureDetector(
@@ -222,4 +270,13 @@ class _BudgetScreenState extends State<BudgetScreen> {
       ),
     );
   }
+}
+
+class Category {
+  String name;
+  double percent;
+  bool isLocked;
+  int color;
+
+  Category({required this.name, required this.percent, this.isLocked = false, required this.color});
 }
