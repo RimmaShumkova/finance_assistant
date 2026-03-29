@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class AppTheme {
   // ==================== ОСНОВНЫЕ ЦВЕТА ====================
   static const Color black = Color(0xFF111111);
+  static const Color blackBg = Color(0xFF111111); // Добавлено - алиас для black
   static const Color blackCard = Color(0xFF1C1C1E);
   static const Color blackSecondary = Color(0xFF2C2C2E);
   static const Color blackLighter = Color(0xFF282828);
