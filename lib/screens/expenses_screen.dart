@@ -72,7 +72,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   }
 
   void _onEditPressed() {
-    Navigator.pushReplacementNamed(
+    Navigator.pushNamed(
       context,
       '/budget',
       arguments: {

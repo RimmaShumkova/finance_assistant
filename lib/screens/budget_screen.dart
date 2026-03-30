@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import '../models/expense_category.dart';
 import 'package:uuid/uuid.dart';
@@ -13,6 +14,24 @@ class BudgetScreen extends StatefulWidget {
   _BudgetScreenState createState() => _BudgetScreenState();
 }
 
+class NoLeadingZeroFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text;
+
+    if (text.isEmpty) return newValue;
+
+    if (text.length > 1 && text.startsWith('0')) {
+      return oldValue;
+    }
+
+    return newValue;
+  }
+}
+
 class _BudgetScreenState extends State<BudgetScreen> {
   double? income;
   List<Category> categories = [];
@@ -22,6 +41,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
   void initState() {
     super.initState();
     income = widget.initialIncome;
+
     if (widget.initialCategories != null && widget.initialCategories!.isNotEmpty) {
       categories = widget.initialCategories!.map((e) =>
         Category(
@@ -47,47 +67,75 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
   void editPercent(int index) async {
     if (income == null) return;
+
     final result = await AppTheme.showCustomInputDialog(
       context: context,
       title: "Введите %",
       initialValue: categories[index].percent.toStringAsFixed(0),
       suffix: "%",
     );
+
     if (result == null) return;
-    double lockedSum = categories.where((c) => c.isLocked && c != categories[index]).fold(0.0, (sum, c) => sum + c.percent);
+
+    double lockedSum = categories
+        .where((c) => c.isLocked && c != categories[index])
+        .fold(0.0, (sum, c) => sum + c.percent);
+
     double maxAllowed = (100 - lockedSum).clamp(0, 100).toDouble();
+
     updatePercent(index, result.clamp(0, maxAllowed));
   }
 
   void editAmount(int index) async {
     if (income == null) return;
+
     final result = await AppTheme.showCustomInputDialog(
       context: context,
       title: "Введите сумму",
       initialValue: moneyFor(categories[index]).toInt().toString(),
       suffix: "₽",
     );
+
     if (result == null) return;
-    double lockedSum = categories.where((c) => c.isLocked && c != categories[index]).fold(0.0, (sum, c) => sum + c.percent);
+
+    double lockedSum = categories
+        .where((c) => c.isLocked && c != categories[index])
+        .fold(0.0, (sum, c) => sum + c.percent);
+
     double maxPercent = (100 - lockedSum).clamp(0, 100).toDouble();
     double maxMoney = income! * maxPercent / 100;
+
     double percent = (result.clamp(0, maxMoney) / income!) * 100;
+
     updatePercent(index, percent);
   }
 
   void updatePercent(int index, double value) {
     if (income == null) return;
+
     setState(() {
       categories[index].percent = value;
-      double lockedSum = categories.where((c) => c.isLocked).fold(0.0, (sum, c) => sum + c.percent);
+
+      double lockedSum = categories
+          .where((c) => c.isLocked)
+          .fold(0.0, (sum, c) => sum + c.percent);
+
       double remaining = (100 - lockedSum).clamp(0, 100);
+
       var unlocked = categories.where((c) => !c.isLocked).toList();
       if (unlocked.isEmpty) return;
-      double otherSum = unlocked.where((c) => c != categories[index]).fold(0.0, (sum, c) => sum + c.percent);
+
+      double otherSum = unlocked
+          .where((c) => c != categories[index])
+          .fold(0.0, (sum, c) => sum + c.percent);
+
       double rest = (remaining - categories[index].percent).clamp(0, remaining);
+
       for (var c in unlocked) {
         if (c != categories[index]) {
-          c.percent = otherSum == 0 ? rest / (unlocked.length - 1) : (c.percent / otherSum) * rest;
+          c.percent = otherSum == 0
+              ? rest / (unlocked.length - 1)
+              : (c.percent / otherSum) * rest;
         }
       }
     });
@@ -96,45 +144,54 @@ class _BudgetScreenState extends State<BudgetScreen> {
   void toggleLock(int index) {
     setState(() {
       categories[index].isLocked = !categories[index].isLocked;
-      double lockedSum = categories.where((c) => c.isLocked).fold(0.0, (sum, c) => sum + c.percent);
+
+      double lockedSum = categories
+          .where((c) => c.isLocked)
+          .fold(0.0, (sum, c) => sum + c.percent);
+
       double remaining = (100 - lockedSum).clamp(0, 100);
+
       var unlocked = categories.where((c) => !c.isLocked).toList();
       if (unlocked.isEmpty) return;
+
       double currentSum = unlocked.fold(0.0, (sum, c) => sum + c.percent);
+
       if (currentSum == 0) {
         double perCategory = remaining / unlocked.length;
         for (var c in unlocked) c.percent = perCategory;
       } else {
-        for (var c in unlocked) c.percent = (c.percent / currentSum) * remaining;
+        for (var c in unlocked) {
+          c.percent = (c.percent / currentSum) * remaining;
+        }
       }
     });
   }
 
   void saveBudget() {
     if (income == null) {
-      ScaffoldMessenger.of(context).showSnackBar(AppTheme.errorSnackBar("Сначала введите доход"));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(AppTheme.errorSnackBar("Сначала введите доход"));
       return;
     }
 
     List<ExpenseCategory> expenseCategories = categories.map((c) =>
-      ExpenseCategory(
-        id: _uuid.v4(),
-        name: c.name,
-        color: c.color,
-        spent: 0,
-        budget: moneyFor(c),
-        transactions: [],
-        isLocked: c.isLocked,
-      )
-    ).toList();
+        ExpenseCategory(
+          id: _uuid.v4(),
+          name: c.name,
+          color: c.color,
+          spent: 0,
+          budget: moneyFor(c),
+          transactions: [],
+          isLocked: c.isLocked,
+        )).toList();
 
-    Navigator.pushReplacementNamed(
+    Navigator.pushNamed(
       context,
       '/expenses',
       arguments: {
         'income': income,
         'categories': expenseCategories,
-      }
+      },
     );
   }
 
@@ -151,25 +208,53 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 children: [
                   Text("Мой бюджет", style: AppTheme.bodyLarge),
                   const SizedBox(height: 8),
-                  Text(income != null ? "${income!.toInt()} ₽" : "0 ₽", style: AppTheme.headlineLarge),
+                  Text(
+                    income != null ? "${income!.toInt()} ₽" : "0 ₽",
+                    style: AppTheme.headlineLarge,
+                  ),
                   if (income == null)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: Text("Введите доход для распределения бюджета", style: AppTheme.bodySmall),
+                      child: Text(
+                        "Введите доход для распределения бюджета",
+                        style: AppTheme.bodySmall,
+                      ),
                     ),
                 ],
               ),
             ),
+
+            // валидированный ввод
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TextField(
                 keyboardType: TextInputType.number,
                 style: const TextStyle(color: AppTheme.white),
-                decoration: AppTheme.inputDecoration(hintText: "Введите доход", suffixText: "₽"),
-                onChanged: (value) => setState(() => income = double.tryParse(value)),
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  NoLeadingZeroFormatter(),
+                ],
+                decoration: AppTheme.inputDecoration(
+                  hintText: "Введите доход",
+                  suffixText: "₽",
+                ),
+                onChanged: (value) {
+                  if (value.isEmpty) {
+                    setState(() => income = null);
+                    return;
+                  }
+
+                  String cleaned = value.replaceFirst(RegExp(r'^0+'), '');
+
+                  setState(() {
+                    income = cleaned.isEmpty ? 0 : double.parse(cleaned);
+                  });
+                },
               ),
             ),
+
             const SizedBox(height: 16),
+
             Expanded(
               child: Container(
                 decoration: AppTheme.darkContainer,
@@ -182,9 +267,16 @@ class _BudgetScreenState extends State<BudgetScreen> {
                           itemCount: categories.length,
                           itemBuilder: (context, index) {
                             final category = categories[index];
+
                             double maxSlider = category.isLocked || income == null
                                 ? category.percent
-                                : (100 - categories.where((c) => c.isLocked).fold(0.0, (sum, c) => sum + c.percent)).clamp(0, 100).toDouble();
+                                : (100 -
+                                        categories
+                                            .where((c) => c.isLocked)
+                                            .fold(0.0, (sum, c) => sum + c.percent))
+                                    .clamp(0, 100)
+                                    .toDouble();
+
                             return Container(
                               margin: const EdgeInsets.symmetric(vertical: 8),
                               padding: const EdgeInsets.all(12),
@@ -197,7 +289,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                     children: [
                                       Row(
                                         children: [
-                                          // Цветовой кружок вместо иконки
                                           Container(
                                             width: 20,
                                             height: 20,
@@ -211,16 +302,25 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                           const SizedBox(width: 6),
                                           GestureDetector(
                                             onTap: () => toggleLock(index),
-                                            child: Icon(category.isLocked ? Icons.lock : Icons.lock_open, size: 16, color: AppTheme.grey),
+                                            child: Icon(
+                                              category.isLocked
+                                                  ? Icons.lock
+                                                  : Icons.lock_open,
+                                              size: 16,
+                                              color: AppTheme.grey,
+                                            ),
                                           ),
                                         ],
                                       ),
                                       GestureDetector(
                                         onTap: () => editAmount(index),
                                         child: TweenAnimationBuilder<double>(
-                                          tween: Tween<double>(begin: 0, end: moneyFor(category)),
+                                          tween: Tween<double>(
+                                              begin: 0, end: moneyFor(category)),
                                           duration: const Duration(milliseconds: 300),
-                                          builder: (context, value, child) => Text("${value.round()} ₽", style: AppTheme.bodyMedium),
+                                          builder: (context, value, child) =>
+                                              Text("${value.round()} ₽",
+                                                  style: AppTheme.bodyMedium),
                                         ),
                                       ),
                                     ],
@@ -228,22 +328,19 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                   const SizedBox(height: 6),
                                   GestureDetector(
                                     onTap: () => editPercent(index),
-                                    child: Text("${category.percent.toStringAsFixed(0)}%", style: AppTheme.bodyMedium),
+                                    child: Text(
+                                      "${category.percent.toStringAsFixed(0)}%",
+                                      style: AppTheme.bodyMedium,
+                                    ),
                                   ),
-                                  SliderTheme(
-                                    data: SliderTheme.of(context).copyWith(
-                                      activeTrackColor: AppTheme.yellow,
-                                      inactiveTrackColor: AppTheme.grey,
-                                      thumbColor: Colors.black,
-                                      overlayColor: AppTheme.yellowLight,
-                                    ),
-                                    child: Slider(
-                                      value: category.percent.clamp(0, maxSlider),
-                                      min: 0,
-                                      max: maxSlider,
-                                      divisions: 100,
-                                      onChanged: category.isLocked || income == null ? null : (value) => updatePercent(index, value),
-                                    ),
+                                  Slider(
+                                    value: category.percent.clamp(0, maxSlider),
+                                    min: 0,
+                                    max: maxSlider,
+                                    divisions: 100,
+                                    onChanged: category.isLocked || income == null
+                                        ? null
+                                        : (value) => updatePercent(index, value),
                                   ),
                                 ],
                               ),
@@ -278,5 +375,10 @@ class Category {
   bool isLocked;
   int color;
 
-  Category({required this.name, required this.percent, this.isLocked = false, required this.color});
+  Category({
+    required this.name,
+    required this.percent,
+    this.isLocked = false,
+    required this.color,
+  });
 }
