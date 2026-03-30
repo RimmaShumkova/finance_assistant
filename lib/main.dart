@@ -6,6 +6,7 @@ import 'screens/phone_auth_screen.dart';
 import 'screens/otp_verification_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/expenses_screen.dart';
+import 'models/expense_category.dart';
 
 import 'theme/app_theme.dart';
 
@@ -21,23 +22,17 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Finance Assistant',
       debugShowCheckedModeBanner: false,
-
       theme: AppTheme.darkTheme,
-
       initialRoute: '/',
-
       routes: {
-        // auth flow
         '/': (context) => const WelcomeScreen(),
         '/phone-auth': (context) => const PhoneAuthScreen(),
         '/otp-verification': (context) => const OtpVerificationScreen(),
         '/main': (context) => MainScreen.getScreen(),
-
-        // screens
         '/budget': (context) => BudgetScreen(
-    initialCategories: (ModalRoute.of(context)!.settings.arguments as Map?)?['initialCategories'],
-    initialIncome: (ModalRoute.of(context)!.settings.arguments as Map?)?['initialIncome'],
-  ),
+          initialCategories: (ModalRoute.of(context)!.settings.arguments as Map?)?['initialCategories'],
+          initialIncome: (ModalRoute.of(context)!.settings.arguments as Map?)?['initialIncome'],
+        ),
         '/expenses': (context) => const ExpensesScreen(),
       },
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import '../models/expense_category.dart';
+import '../services/data_service.dart';
 import 'package:uuid/uuid.dart';
 
 class BudgetScreen extends StatefulWidget {
@@ -167,7 +168,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
     });
   }
 
-  void saveBudget() {
+  void saveBudget() async {
     if (income == null) {
       ScaffoldMessenger.of(context)
           .showSnackBar(AppTheme.errorSnackBar("Сначала введите доход"));
@@ -184,6 +185,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
           transactions: [],
           isLocked: c.isLocked,
         )).toList();
+
+    final dataService = DataService();
+    await dataService.saveBudget(income!, expenseCategories);
 
     Navigator.pushNamed(
       context,
@@ -224,7 +228,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
               ),
             ),
 
-            // валидированный ввод
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TextField(
@@ -338,6 +341,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                     min: 0,
                                     max: maxSlider,
                                     divisions: 100,
+                                    activeColor: AppTheme.yellow,
+                                    inactiveColor: AppTheme.grey,
                                     onChanged: category.isLocked || income == null
                                         ? null
                                         : (value) => updatePercent(index, value),

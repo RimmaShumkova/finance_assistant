@@ -31,6 +31,32 @@ class ExpenseCategory {
       isLocked: isLocked ?? this.isLocked,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'color': color,
+      'spent': spent,
+      'budget': budget,
+      'isLocked': isLocked,
+      'transactions': transactions.map((t) => t.toJson()).toList(),
+    };
+  }
+
+  factory ExpenseCategory.fromJson(Map<String, dynamic> json) {
+    return ExpenseCategory(
+      id: json['id'],
+      name: json['name'],
+      color: json['color'],
+      spent: json['spent'],
+      budget: json['budget'],
+      isLocked: json['isLocked'] ?? false,
+      transactions: (json['transactions'] as List)
+          .map((t) => Transaction.fromJson(t))
+          .toList(),
+    );
+  }
 }
 
 class Transaction {
@@ -47,4 +73,24 @@ class Transaction {
     required this.date,
     required this.categoryId,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'description': description,
+      'amount': amount,
+      'date': date.toIso8601String(),
+      'categoryId': categoryId,
+    };
+  }
+
+  factory Transaction.fromJson(Map<String, dynamic> json) {
+    return Transaction(
+      id: json['id'],
+      description: json['description'],
+      amount: json['amount'],
+      date: DateTime.parse(json['date']),
+      categoryId: json['categoryId'],
+    );
+  }
 }

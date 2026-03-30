@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/expense_category.dart';
-import '../services/api_service.dart';
 import '../widgets/expense_chart.dart';
 
 class ExpensesScreen extends StatefulWidget {
@@ -14,10 +13,8 @@ class ExpensesScreen extends StatefulWidget {
 class _ExpensesScreenState extends State<ExpensesScreen> {
   List<ExpenseCategory> _categories = [];
   bool _isLoading = true;
-  String? _error;
   String _currentMonth = '';
   double? _income;
-  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
@@ -33,8 +30,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       _income = args['income'] as double?;
       _categories = List<ExpenseCategory>.from(args['categories'] as List);
       _isLoading = false;
-    } else {
-      _loadData();
     }
   }
 
@@ -45,30 +40,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'
     ];
     return months[now.month - 1];
-  }
-
-  Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      final data = await _apiService.getTransactions();
-      setState(() {
-        _categories = data;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _refreshData() async {
-    await _loadData();
   }
 
   void _onEditPressed() {
@@ -111,13 +82,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         backgroundColor: AppTheme.black,
         foregroundColor: AppTheme.white,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: AppTheme.yellow),
-            onPressed: _refreshData,
-            tooltip: 'Обновить',
-          ),
-        ],
+        // Кнопка обновления удалена
       ),
       body: _isLoading
           ? const Center(
@@ -125,39 +90,32 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 color: AppTheme.yellow,
               ),
             )
-          : _error != null
-              ? _buildErrorWidget()
-              : RefreshIndicator(
-                  onRefresh: _refreshData,
-                  color: AppTheme.yellow,
-                  backgroundColor: AppTheme.blackCard,
-                  child: ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    children: [
-                      _buildTotalStats(),
-                      const SizedBox(height: 16),
-                      if (_categories.isNotEmpty)
-                        ExpenseChart(categories: _categories),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          'Расходы по категориям',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      ..._categories.map((category) =>
-                          _buildExpenseCard(category)),
-                      const SizedBox(height: 16),
-                      _buildActionButtons(),
-                      const SizedBox(height: 80),
-                    ],
+          : ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                _buildTotalStats(),
+                const SizedBox(height: 16),
+                if (_categories.isNotEmpty)
+                  ExpenseChart(categories: _categories),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Расходы по категориям',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.white,
+                    ),
                   ),
                 ),
+                const SizedBox(height: 8),
+                ..._categories.map((category) =>
+                    _buildExpenseCard(category)),
+                const SizedBox(height: 16),
+                _buildActionButtons(),
+                const SizedBox(height: 80),
+              ],
+            ),
     );
   }
 
@@ -181,7 +139,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             children: [
               Row(
                 children: [
-                  // Цветовой кружок вместо эмодзи
                   Container(
                     width: 24,
                     height: 24,
@@ -274,7 +231,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     );
   }
 
-  // Метод для выбора иконки в зависимости от категории
   IconData _getIconForCategory(String categoryName) {
     switch (categoryName.toLowerCase()) {
       case 'продукты':
@@ -475,47 +431,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildErrorWidget() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: AppTheme.grey,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Ошибка загрузки данных',
-            style: TextStyle(
-              fontSize: 18,
-              color: AppTheme.white,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _error ?? 'Неизвестная ошибка',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppTheme.grey,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: _loadData,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.yellow,
-              foregroundColor: Colors.black,
-            ),
-            child: const Text('Попробовать снова'),
-          ),
-        ],
-      ),
     );
   }
 }
