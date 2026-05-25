@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/expense_category.dart';
+import '../services/api_service.dart';
+import '../services/data_service.dart';
 import '../widgets/expense_chart.dart';
 
 class ExpensesScreen extends StatefulWidget {
@@ -13,8 +15,10 @@ class ExpensesScreen extends StatefulWidget {
 class _ExpensesScreenState extends State<ExpensesScreen> {
   List<ExpenseCategory> _categories = [];
   bool _isLoading = true;
+  bool _didLoad = false;
   String _currentMonth = '';
   double? _income;
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
@@ -25,11 +29,33 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (_didLoad) return;
+    _didLoad = true;
     final args = ModalRoute.of(context)!.settings.arguments as Map?;
     if (args != null) {
       _income = args['income'] as double?;
       _categories = List<ExpenseCategory>.from(args['categories'] as List);
       _isLoading = false;
+    }
+    _loadBudgetSummary(showLoader: args == null);
+  }
+
+  Future<void> _loadBudgetSummary({bool showLoader = true}) async {
+    if (showLoader) setState(() => _isLoading = true);
+    try {
+      final summary = await _apiService.getBudgetSummary();
+      if (!mounted) return;
+      setState(() {
+        _income = summary.monthlyIncome;
+        _categories = summary.categories;
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        AppTheme.errorSnackBar(error.toString()),
+      );
     }
   }
 
@@ -49,15 +75,25 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       arguments: {
         'initialIncome': _income,
         'initialCategories': _categories,
-      }
+      },
     );
+  }
+
+  Future<void> _logout() async {
+    await _apiService.clearSession();
+    await DataService().clearBudget();
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
       backgroundColor: AppTheme.black,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -82,7 +118,18 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         backgroundColor: AppTheme.black,
         foregroundColor: AppTheme.white,
         elevation: 0,
-        // Кнопка обновления удалена
+        actions: [
+          IconButton(
+            tooltip: 'Обновить',
+            icon: const Icon(Icons.refresh),
+            onPressed: () => _loadBudgetSummary(),
+          ),
+          IconButton(
+            tooltip: 'Выйти',
+            icon: const Icon(Icons.logout),
+            onPressed: _logout,
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(
@@ -116,6 +163,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 const SizedBox(height: 80),
               ],
             ),
+      ),
     );
   }
 
@@ -164,19 +212,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     ),
                   ),
                 ],
-              ),
-              IconButton(
-                icon: Icon(
-                  category.isLocked ? Icons.lock : Icons.lock_open,
-                  color: AppTheme.grey,
-                  size: 20,
-                ),
-                onPressed: () {
-                  setState(() {
-                    int index = _categories.indexOf(category);
-                    _categories[index] = category.copyWith(isLocked: !category.isLocked);
-                  });
-                },
               ),
             ],
           ),
@@ -251,35 +286,86 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   Widget _buildActionButtons() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: ElevatedButton(
-        onPressed: _onEditPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppTheme.blackCard,
-          foregroundColor: AppTheme.white,
-          elevation: 0,
-          side: BorderSide(
-            color: AppTheme.yellow.withOpacity(0.5),
-            width: 1,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _buildNavButton(
+                  icon: Icons.receipt_long,
+                  label: 'Операции',
+                  onPressed: () => Navigator.pushNamed(context, '/transactions'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildNavButton(
+                  icon: Icons.flag,
+                  label: 'Цели',
+                  onPressed: () => Navigator.pushNamed(context, '/goals'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildNavButton(
+                  icon: Icons.notifications,
+                  label: 'Уведомления',
+                  onPressed: () => Navigator.pushNamed(context, '/notifications'),
+                ),
+              ),
+            ],
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: _buildNavButton(
+              icon: Icons.edit,
+              label: 'Редактировать бюджет',
+              onPressed: _onEditPressed,
+            ),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 14),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppTheme.blackCard,
+        foregroundColor: AppTheme.white,
+        elevation: 0,
+        side: BorderSide(
+          color: AppTheme.yellow.withOpacity(0.5),
+          width: 1,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.edit, size: 18),
-            SizedBox(width: 8),
-            Text(
-              'Редактировать бюджет',
-              style: TextStyle(
-                fontSize: 14,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

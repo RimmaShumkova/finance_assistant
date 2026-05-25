@@ -6,7 +6,9 @@ import 'screens/phone_auth_screen.dart';
 import 'screens/otp_verification_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/expenses_screen.dart';
-import 'models/expense_category.dart';
+import 'screens/goals_screen.dart';
+import 'screens/notifications_screen.dart';
+import 'screens/transactions_screen.dart';
 
 import 'theme/app_theme.dart';
 
@@ -34,6 +36,9 @@ class MyApp extends StatelessWidget {
           initialIncome: (ModalRoute.of(context)!.settings.arguments as Map?)?['initialIncome'],
         ),
         '/expenses': (context) => const ExpensesScreen(),
+        '/goals': (context) => const GoalsScreen(),
+        '/notifications': (context) => const NotificationsScreen(),
+        '/transactions': (context) => const TransactionsScreen(),
       },
     );
   }
