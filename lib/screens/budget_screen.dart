@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import '../models/expense_category.dart';
+import '../services/api_service.dart';
 import '../services/data_service.dart';
 import 'package:uuid/uuid.dart';
 
@@ -37,6 +38,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
   double? income;
   List<Category> categories = [];
   final Uuid _uuid = Uuid();
+  final ApiService _apiService = ApiService();
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -46,7 +49,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
     if (widget.initialCategories != null && widget.initialCategories!.isNotEmpty) {
       categories = widget.initialCategories!.map((e) =>
         Category(
+          code: e.code,
           name: e.name,
+          kind: e.kind,
           percent: (e.budget / (income ?? 1)) * 100,
           isLocked: e.isLocked,
           color: e.color,
@@ -54,12 +59,12 @@ class _BudgetScreenState extends State<BudgetScreen> {
       ).toList();
     } else {
       categories = [
-        Category(name: "Продукты", percent: 25, color: 0xFFFF6B6B),
-        Category(name: "Коммунальные", percent: 15, color: 0xFF96CEB4),
-        Category(name: "Развлечения", percent: 10, color: 0xFF45B7D1),
-        Category(name: "Транспорт", percent: 10, color: 0xFF4ECDC4),
-        Category(name: "Накопления", percent: 20, color: 0xFFFFEAA7),
-        Category(name: "Остальное", percent: 20, color: 0xFFDDA0DD),
+        Category(code: 'groceries', name: "Продукты", kind: 'expense', percent: 25, color: 0xFFFF6B6B),
+        Category(code: 'utilities', name: "Коммунальные услуги", kind: 'expense', percent: 15, color: 0xFF96CEB4),
+        Category(code: 'entertainment', name: "Развлечения", kind: 'expense', percent: 10, color: 0xFF45B7D1),
+        Category(code: 'transport', name: "Транспорт", kind: 'expense', percent: 10, color: 0xFF4ECDC4),
+        Category(code: 'savings', name: "Накопления", kind: 'savings', percent: 20, color: 0xFFFFEAA7),
+        Category(code: 'other', name: "Остальное", kind: 'other', percent: 20, color: 0xFFDDA0DD),
       ];
     }
   }
@@ -178,7 +183,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
     List<ExpenseCategory> expenseCategories = categories.map((c) =>
         ExpenseCategory(
           id: _uuid.v4(),
+          code: c.code,
           name: c.name,
+          kind: c.kind,
           color: c.color,
           spent: 0,
           budget: moneyFor(c),
@@ -186,10 +193,28 @@ class _BudgetScreenState extends State<BudgetScreen> {
           isLocked: c.isLocked,
         )).toList();
 
-    final dataService = DataService();
-    await dataService.saveBudget(income!, expenseCategories);
+    setState(() => _isSaving = true);
+    try {
+      await _apiService.updateBudgetSettings(
+        monthlyIncome: income!,
+        categories: expenseCategories,
+      );
 
-    Navigator.pushNamed(
+      final dataService = DataService();
+      await dataService.saveBudget(income!, expenseCategories);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        AppTheme.errorSnackBar(error.toString()),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+
+    Navigator.pushReplacementNamed(
       context,
       '/expenses',
       arguments: {
@@ -199,9 +224,19 @@ class _BudgetScreenState extends State<BudgetScreen> {
     );
   }
 
+  Future<void> _logout() async {
+    await _apiService.clearSession();
+    await DataService().clearBudget();
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final isEditingExistingBudget = widget.initialCategories != null;
+    return PopScope(
+      canPop: isEditingExistingBudget,
+      child: Scaffold(
       backgroundColor: AppTheme.black,
       body: SafeArea(
         child: Column(
@@ -210,7 +245,23 @@ class _BudgetScreenState extends State<BudgetScreen> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  Text("Мой бюджет", style: AppTheme.bodyLarge),
+                  Row(
+                    children: [
+                      const SizedBox(width: 48),
+                      Expanded(
+                        child: Text(
+                          "Мой бюджет",
+                          style: AppTheme.bodyLarge,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Выйти',
+                        icon: const Icon(Icons.logout, color: AppTheme.grey),
+                        onPressed: _logout,
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     income != null ? "${income!.toInt()} ₽" : "0 ₽",
@@ -358,8 +409,10 @@ class _BudgetScreenState extends State<BudgetScreen> {
                         width: double.infinity,
                         child: ElevatedButton(
                           style: AppTheme.yellowButtonMedium,
-                          onPressed: saveBudget,
-                          child: const Text("Сохранить"),
+                          onPressed: _isSaving ? null : saveBudget,
+                          child: _isSaving
+                              ? AppTheme.smallProgress
+                              : const Text("Сохранить"),
                         ),
                       ),
                     ],
@@ -370,18 +423,23 @@ class _BudgetScreenState extends State<BudgetScreen> {
           ],
         ),
       ),
+      ),
     );
   }
 }
 
 class Category {
+  String code;
   String name;
+  String kind;
   double percent;
   bool isLocked;
   int color;
 
   Category({
+    required this.code,
     required this.name,
+    required this.kind,
     required this.percent,
     this.isLocked = false,
     required this.color,

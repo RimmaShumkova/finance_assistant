@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
@@ -10,8 +11,12 @@ class OtpVerificationScreen extends StatefulWidget {
 }
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
-  final List<TextEditingController> _otpControllers = List.generate(6, (index) => TextEditingController());
+  final List<TextEditingController> _otpControllers = List.generate(
+    6,
+    (index) => TextEditingController(),
+  );
   final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
+  final ApiService _apiService = ApiService();
   bool _isLoading = false;
   int _timerSeconds = 60;
   bool _canResend = false;
@@ -37,26 +42,64 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     });
   }
 
-  void _resendCode() {
+  Future<void> _resendCode() async {
+    final String? phoneNumber =
+        ModalRoute.of(context)?.settings.arguments as String?;
+    if (phoneNumber == null) return;
     setState(() {
+      _isLoading = true;
       _timerSeconds = 60;
       _canResend = false;
     });
-    _startTimer();
-    ScaffoldMessenger.of(context).showSnackBar(AppTheme.successSnackBar('Код отправлен повторно'));
+    try {
+      await _apiService.resendVerificationCode(phoneNumber);
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _startTimer();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(AppTheme.successSnackBar('Код отправлен повторно'));
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _canResend = true;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(AppTheme.errorSnackBar(error.toString()));
+    }
   }
 
-  void _verifyCode() {
+  Future<void> _verifyCode() async {
+    final String? phoneNumber =
+        ModalRoute.of(context)?.settings.arguments as String?;
     String code = _otpControllers.map((c) => c.text).join();
     if (code.length != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(AppTheme.errorSnackBar('Введите код из 6 цифр'));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(AppTheme.errorSnackBar('Введите код из 6 цифр'));
+      return;
+    }
+    if (phoneNumber == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(AppTheme.errorSnackBar('Номер телефона не найден'));
       return;
     }
     setState(() => _isLoading = true);
-    Future.delayed(const Duration(seconds: 2), () {
+    try {
+      await _apiService.verifyCode(phoneNumber: phoneNumber, code: code);
+      if (!mounted) return;
       setState(() => _isLoading = false);
-      Navigator.pushReplacementNamed(context, '/main');
-    });
+      Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(AppTheme.errorSnackBar(error.toString()));
+    }
   }
 
   @override
@@ -68,7 +111,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final String? phoneNumber = ModalRoute.of(context)?.settings.arguments as String?;
+    final String? phoneNumber =
+        ModalRoute.of(context)?.settings.arguments as String?;
     return Scaffold(
       backgroundColor: AppTheme.black,
       appBar: AppBar(
@@ -86,41 +130,65 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               const SizedBox(height: 20),
               const Text('Подтверждение', style: AppTheme.titleLarge),
               const SizedBox(height: 8),
-              Text('Введите код из SMS, отправленный на номер', style: AppTheme.bodyLarge),
+              Text(
+                'Введите код из SMS, отправленный на номер',
+                style: AppTheme.bodyLarge,
+              ),
               const SizedBox(height: 8),
-              Text(phoneNumber ?? '+7 (___) ___-__-__', style: AppTheme.accentText),
+              Text(
+                phoneNumber ?? '+7 (___) ___-__-__',
+                style: AppTheme.accentText,
+              ),
               const SizedBox(height: 48),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(6, (index) => SizedBox(
-                  width: 50,
-                  height: 70,
-                  child: TextField(
-                    controller: _otpControllers[index],
-                    focusNode: _focusNodes[index],
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppTheme.white, fontSize: 24, fontWeight: FontWeight.bold),
-                    inputFormatters: [LengthLimitingTextInputFormatter(1), FilteringTextInputFormatter.digitsOnly],
-                    decoration: AppTheme.otpInputDecoration(),
-                    onChanged: (value) {
-                      if (value.isNotEmpty && index < 5) _focusNodes[index + 1].requestFocus();
-                      if (value.isEmpty && index > 0) _focusNodes[index - 1].requestFocus();
-                      if (index == 5 && value.isNotEmpty) _verifyCode();
-                    },
+                children: List.generate(
+                  6,
+                  (index) => SizedBox(
+                    width: 50,
+                    height: 70,
+                    child: TextField(
+                      controller: _otpControllers[index],
+                      focusNode: _focusNodes[index],
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppTheme.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(1),
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      decoration: AppTheme.otpInputDecoration(),
+                      onChanged: (value) {
+                        if (value.isNotEmpty && index < 5)
+                          _focusNodes[index + 1].requestFocus();
+                        if (value.isEmpty && index > 0)
+                          _focusNodes[index - 1].requestFocus();
+                        if (index == 5 && value.isNotEmpty) _verifyCode();
+                      },
+                    ),
                   ),
-                )),
+                ),
               ),
               const SizedBox(height: 32),
               Center(
                 child: Column(
                   children: [
                     if (!_canResend)
-                      Text('Отправить код повторно через $_timerSeconds сек', style: AppTheme.bodySmall),
+                      Text(
+                        'Отправить код повторно через $_timerSeconds сек',
+                        style: AppTheme.bodySmall,
+                      ),
                     if (_canResend)
                       TextButton(
                         onPressed: _resendCode,
-                        child: const Text('Отправить код повторно', style: AppTheme.accentText),
+                        child: const Text(
+                          'Отправить код повторно',
+                          style: AppTheme.accentText,
+                        ),
                       ),
                   ],
                 ),
@@ -131,7 +199,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 child: ElevatedButton(
                   style: AppTheme.yellowButtonLarge,
                   onPressed: _verifyCode,
-                  child: _isLoading ? AppTheme.smallProgress : const Text('Подтвердить', style: AppTheme.buttonLarge),
+                  child: _isLoading
+                      ? AppTheme.smallProgress
+                      : const Text('Подтвердить', style: AppTheme.buttonLarge),
                 ),
               ),
             ],
