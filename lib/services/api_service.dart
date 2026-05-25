@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/expense_category.dart';
+import 'app_navigation.dart';
 
 class ApiException implements Exception {
   const ApiException(this.message, {this.code, this.statusCode});
@@ -113,6 +114,11 @@ class ApiService {
     return prefs.getString(_accessTokenKey);
   }
 
+  Future<String?> _getRefreshToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_refreshTokenKey);
+  }
+
   Future<bool> hasSession() async => (await getAccessToken()) != null;
 
   Future<void> clearSession() async {
@@ -196,13 +202,16 @@ class ApiService {
     return FinancialGoal.fromJson(data);
   }
 
-  Future<void> registerDemoDeviceToken() async {
+  Future<void> registerDeviceToken({
+    required String token,
+    required String platform,
+  }) async {
     await _post(
       '/notifications/device-token',
       authorized: true,
       body: {
-        'token': 'web_demo_token_for_backend_test_123456789',
-        'platform': 'android',
+        'token': token,
+        'platform': platform,
       },
     );
   }
@@ -215,11 +224,13 @@ class ApiService {
   }
 
   Future<dynamic> _get(String path, {bool authorized = false}) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl$path'),
-      headers: await _headers(authorized: authorized),
+    return _sendWithAuthRetry(
+      authorized: authorized,
+      send: (headers) => http.get(
+        Uri.parse('$baseUrl$path'),
+        headers: headers,
+      ),
     );
-    return _decodeResponse(response);
   }
 
   Future<dynamic> _post(
@@ -227,12 +238,14 @@ class ApiService {
     required Map<String, dynamic> body,
     bool authorized = false,
   }) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl$path'),
-      headers: await _headers(authorized: authorized),
-      body: jsonEncode(body),
+    return _sendWithAuthRetry(
+      authorized: authorized,
+      send: (headers) => http.post(
+        Uri.parse('$baseUrl$path'),
+        headers: headers,
+        body: jsonEncode(body),
+      ),
     );
-    return _decodeResponse(response);
   }
 
   Future<dynamic> _put(
@@ -240,12 +253,50 @@ class ApiService {
     required Map<String, dynamic> body,
     bool authorized = false,
   }) async {
-    final response = await http.put(
-      Uri.parse('$baseUrl$path'),
-      headers: await _headers(authorized: authorized),
-      body: jsonEncode(body),
+    return _sendWithAuthRetry(
+      authorized: authorized,
+      send: (headers) => http.put(
+        Uri.parse('$baseUrl$path'),
+        headers: headers,
+        body: jsonEncode(body),
+      ),
     );
+  }
+
+  Future<dynamic> _sendWithAuthRetry({
+    required Future<http.Response> Function(Map<String, String> headers) send,
+    required bool authorized,
+  }) async {
+    var response = await send(await _headers(authorized: authorized));
+    if (authorized && response.statusCode == 401) {
+      final refreshed = await _refreshSession();
+      if (refreshed) {
+        response = await send(await _headers(authorized: authorized));
+      }
+    }
     return _decodeResponse(response);
+  }
+
+  Future<bool> _refreshSession() async {
+    final refreshToken = await _getRefreshToken();
+    if (refreshToken == null) return false;
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/refresh'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'refresh_token': refreshToken}),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      await clearSession();
+      AppNavigation.resetToWelcome();
+      return false;
+    }
+
+    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    final session = AuthSession.fromJson(decoded as Map<String, dynamic>);
+    await _saveSession(session);
+    return true;
   }
 
   Future<Map<String, String>> _headers({required bool authorized}) async {
@@ -253,6 +304,7 @@ class ApiService {
     if (authorized) {
       final token = await getAccessToken();
       if (token == null) {
+        AppNavigation.resetToWelcome();
         throw const ApiException('Нужно войти в аккаунт.');
       }
       headers['Authorization'] = 'Bearer $token';
