@@ -10,9 +10,18 @@ import 'screens/goals_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/transactions_screen.dart';
 
+import 'services/app_navigation.dart';
+import 'services/push_notification_service.dart';
 import 'theme/app_theme.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await PushNotificationService.instance.initialize();
+    await PushNotificationService.instance.registerCurrentDeviceIfSignedIn();
+  } catch (error) {
+    debugPrint('Failed to initialize push notifications: $error');
+  }
   runApp(const MyApp());
 }
 
@@ -22,6 +31,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: AppNavigation.navigatorKey,
       title: 'Finance Assistant',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,

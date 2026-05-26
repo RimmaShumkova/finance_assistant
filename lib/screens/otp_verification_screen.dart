@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/api_service.dart';
+import '../services/push_notification_service.dart';
 import '../theme/app_theme.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
@@ -90,6 +91,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     setState(() => _isLoading = true);
     try {
       await _apiService.verifyCode(phoneNumber: phoneNumber, code: code);
+      try {
+        await PushNotificationService.instance.registerCurrentDevice();
+      } catch (error) {
+        debugPrint('Failed to register push token: $error');
+      }
       if (!mounted) return;
       setState(() => _isLoading = false);
       Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
